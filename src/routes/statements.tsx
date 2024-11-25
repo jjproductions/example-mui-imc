@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box, ButtonGroup } from "@mui/material";
-import { Expense, bankExpense } from "../types";
+import { Expense, Expense2, bankExpense } from "../types";
 import axios from "axios";
 import { styled } from '@mui/material/styles';
 import { AuthContext } from "../hooks/useAuth";
@@ -11,7 +11,11 @@ const Statements: React.FC = () => {
     const [fileName, setFileName] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const api_url = `${process.env.REACT_APP_DOMAIN}${process.env.REACT_APP_API_VERSION}/expenses`;
-
+    const auth = `Bearer ${localStorage.getItem("token")}`;
+    const userHeaders = {
+        "Authorization": auth,
+        "Content-Type": 'application/json',
+    };
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
         clipPath: 'inset(50%)',
@@ -80,18 +84,30 @@ const Statements: React.FC = () => {
                 })
             }
 
-            console.log(`expenseObj: ${expenseObj}`);
+            // for (let i = 0; i < oData.length; i++) {
+            //     expenseObj.push({
+            //         Amount: Number(oData[i].Amount),
+            //         CardNumber: Number(oData[i].Card),
+            //         TransactionDate: new Date(oData[i]["Transaction Date"]).toJSON(),
+            //         PostDate: new Date(oData[i]["Post Date"]).toJSON(),
+            //         Category: oData[i].Category,
+            //         Description: oData[i].Description,
+            //         Type: oData[i].Type,
+            //         Memo: oData[i].Memo
+            //     })
+            // }
+            
             // Post data
 
             console.log(`Calling api: ${api_url}`);
 
             const postExpenses = async (finalExpense: Expense[]) => {
                 try {
-                    const response = await axios.post(api_url, finalExpense, {
-                        headers: {
-                             "Authorization": `Bearer ${localStorage.getItem('token')}`
-                        },
-                    });
+                    var request = JSON.stringify(finalExpense);
+                    console.log(request);
+                    const response = await axios.post(api_url, request, {
+                        headers: userHeaders
+                        });
                     handleClear("Data uploaded successfully!");
                 } catch (error) {
                     console.error("Error fetching data:", error);

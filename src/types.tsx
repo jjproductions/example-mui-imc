@@ -23,15 +23,26 @@ export interface Expense {
     memo: string;
   }
 
+export interface Expense2 {
+  Amount: number;
+  CardNumber: number;
+  TransactionDate: string;
+  PostDate: string;
+  Category: string;
+  Description: string;
+  Type: string;
+  Memo: string;
+}
+
   export interface bankExpense {
     Amount: string;
     Card: string;
+    "Transaction Date": string;
+    "Post Date": string;
     Category: string;
     Description: string;
-    Memo: string;
-    "Post Date": string;
-    "Transaction Date": string;
     Type: string;
+    Memo: string;
   }
 
   export interface UserType {
