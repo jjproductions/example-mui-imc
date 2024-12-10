@@ -1,17 +1,19 @@
 import { Box, Drawer, Typography, IconButton, Menu, Stack, Button, AppBar, Toolbar } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import CatchingPokemonIcon from '@mui/icons-material/CatchingPokemon'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../hooks/useAuth'
 
 
 export const MuiDrawer = () => {
-    const { token, Logout } = useContext(AuthContext);
+    const { Logout, userInfo } = useContext(AuthContext);
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+    //const [showAdmin, setShowAdmin] = useState<boolean>(false);
     const navigate = useNavigate();
-    const isAdmin = localStorage.getItem('isAdmin');
-    console.log(`isAdmin: ${isAdmin}`);
+    const isAdmin = localStorage.getItem('isAdmin') === 'true' ? true : false;
+    const token = localStorage.getItem('token');
+    
 
     const goTo = (page: string) => {
         setIsDrawerOpen(false);
@@ -20,6 +22,9 @@ export const MuiDrawer = () => {
         else
             navigate(page);
     }
+
+    console.log(`Drawer: admin: ${isAdmin} :: token: ${token}`);
+    console.log(`userinfo: ${JSON.stringify(userInfo)}`);
 
     return (
         <>
@@ -52,14 +57,14 @@ export const MuiDrawer = () => {
                         <Stack direction={'column'} spacing={2}>
                             {token ? (
                                 <>
-                                    {isAdmin && 
+                                    {isAdmin &&
                                         (<Button color='inherit' onClick={() => goTo('statements')}>Statement</Button>)
                                     }
                                     <Button color='inherit' onClick={() => goTo('expenses')}>Expenses</Button>
                                     <Button color='inherit' onClick={() => goTo('reports')}>Reports</Button>
                                     <Button color='inherit' onClick={() => goTo('logout')}>Logout</Button>
                                 </>
-                                ) : (
+                            ) : (
                                 <Button color='inherit' onClick={() => goTo('login')}>Login</Button>
                             )}
                         </Stack>

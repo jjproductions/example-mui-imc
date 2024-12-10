@@ -23,16 +23,14 @@ export interface Expense {
     memo: string;
   }
 
-export interface Expense2 {
-  Amount: number;
-  CardNumber: number;
-  TransactionDate: string;
-  PostDate: string;
-  Category: string;
-  Description: string;
-  Type: string;
-  Memo: string;
-}
+export interface users {
+    id: number;
+    name: string;
+    email: string;
+    card: number;
+    cardId: number;
+    active: boolean;
+  }
 
   export interface bankExpense {
     Amount: string;
@@ -49,4 +47,15 @@ export interface Expense2 {
     user: string | null,
     isAdmin: boolean,
     role: string | null
+  }
+
+  export interface gridType {
+    items: Expense[] | undefined,
+    showCheckBox?: boolean
+  }
+
+  export interface appContext {
+    reportItems: Expense[] | undefined,
+    ReportSetUp: (report: Expense[] | undefined) => void
+    // setReportItems: (arg0: Expense) => void
   }

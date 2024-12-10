@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box, ButtonGroup } from "@mui/material";
-import { Expense, Expense2, bankExpense } from "../types";
+import { Expense, bankExpense } from "../types";
 import axios from "axios";
 import { styled } from '@mui/material/styles';
 import { AuthContext } from "../hooks/useAuth";

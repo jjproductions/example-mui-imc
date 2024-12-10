@@ -54,6 +54,7 @@ export const Login = () => {
             }
             console.log("calling useAuth.login");
             const routeToNav = await Login(credentials);
+            console.log(`navigating to: ${routeToNav}`);
             routeToNav ? navigate(`../${routeToNav}`) : setValidationMessage('Invalid Credentials');
         }
     }

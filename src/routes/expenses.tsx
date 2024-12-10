@@ -1,24 +1,45 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box, ButtonGroup } from "@mui/material";
-import { Expense, UserType } from "../types";
+import { Button, Typography, Box, ButtonGroup, Select, OutlinedInput, MenuItem, SelectChangeEvent, Theme, useTheme } from "@mui/material";
+import { Expense, gridType, users, UserType } from "../types";
 import axios from "axios";
-import { api_domain } from "../utilities";
+import { api_domain, getCCUsers } from "../utilities";
 import { AuthContext } from "../hooks/useAuth";
+import { GridView } from "../components/gridView";
+import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../hooks/useAppContext";
 
 const Expenses: React.FC = () => {
-    const { token, userInfo } = useContext(AuthContext);
-    const [tExpenses, setTExpenses] = useState<Expense[] | null>(null);
+    const { userInfo } = useContext(AuthContext);
+    const { reportItems, ReportSetUp } = useAppContext();
+    const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);
     const [loading, setLoading] = useState<boolean>(false);
     const [transMessage, setTransMessage] = useState<string | null>(null);
-    const [selected, setSelected] = useState<string | null>(null);
+    const [selected, setSelected] = useState<number>(-1);
+    const [users, setUsers] = useState<users[]>([]);
+    const navigate = useNavigate();
     const loggedInUser: UserType | null = userInfo;
-    const api_url = loggedInUser?.isAdmin ? `${api_domain}/statements` : `${api_domain}/statements`;
+    let api_url = `${api_domain}/statements`;
+    let gridConfig: gridType = { items: tExpenses, showCheckBox: !userInfo?.isAdmin};
     
-    console.log(`userInfo: user:${userInfo?.user} role:${userInfo?.role} Admin:${userInfo?.isAdmin}`);
+    //console.log(`userInfo: user:${userInfo?.user} role:${userInfo?.role} Admin:${userInfo?.isAdmin}`);
 
-    const auth = `Bearer ${token}`;
+    console.log(`tExpenses: ${JSON.stringify(tExpenses)}`);
+
+    const theme = useTheme();
+    const ITEM_HEIGHT = 48;
+    const ITEM_PADDING_TOP = 8;
+    const MenuProps = {
+        PaperProps: {
+            style: {
+                maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+                width: 250,
+            },
+        },
+    };
+    const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
-      "Authorization": auth
+      "Authorization": auth,
+      "Content-Type": 'application/json',
     };
 
     const PopulateData = (data: Expense[]) => {
@@ -30,17 +51,19 @@ const Expenses: React.FC = () => {
     }
 
     useEffect(() => {
-        const getExpenses = async () => {
+        const getUsers = async () => {
             try {
-                console.log(`Calling Api: ${api_url}`);
-                const response = await axios.get(api_url, {
-                    headers: userHeaders
-                });
-                const isMultipleTransactions: string = response.data.expenses.length > 1 ? `${response.data.expenses.length} transactions` : "1 transaction";
-                const transCountMessage: string = response.data.expenses.length > 0 ? isMultipleTransactions : "No Transactions Available";
-                ControlVisibility(transCountMessage);
-                PopulateData(response.data.expenses);
-                setTExpenses(response.data.expenses);
+                if (userInfo?.isAdmin && (users == null || users.length === 0)) {
+                    // Get all CC Users
+                    const response: users[] = await getCCUsers();
+                    console.log(`getUsers first response: ${response.length}`);
+                    if (response && response.length > 1)
+                    {
+                        setUsers(response);
+                    }
+                    else
+                        console.log("NO DATA");
+                }
             } catch (error) {
                 console.error("Error fetching data:", error);
                 ControlVisibility("Sorry, the data failed to upload");
@@ -48,65 +71,120 @@ const Expenses: React.FC = () => {
                 setLoading(false);
             }
         };
-        getExpenses();
+        getUsers();
     }, [selected]);
+
+
+    useEffect(() => {
+        const getExpenses = async () => {
+            try {
+                //Staff use case
+                if (!userInfo?.isAdmin) {
+                    api_url = `${api_url}`;
+                }
+                //Admin use case
+                else if (userInfo?.isAdmin) {
+                    api_url = selected > -1 ? `${api_url}?id=${selected}` : "";
+                }
+                    
+                if (api_url != "") 
+                {
+                    console.log(`Calling Api: ${api_url}`);
+                    const response = await axios.get(api_url, {
+                        headers: userHeaders
+                    });
+                    const isMultipleTransactions: string = response?.data?.expenses?.length > 1 ? `${response.data.expenses.length} transactions` : "1 transaction";
+                    const transCountMessage: string = response?.data?.expenses?.length > 0 ? isMultipleTransactions : "No Transactions Available";
+                    ControlVisibility(transCountMessage);
+                    if (response?.data?.expenses?.length > 0){
+                        PopulateData(response.data.expenses);
+                        console.log(`length: ${response.data.expenses.length} :: expense response: ${JSON.stringify(response.data.expenses)}`);
+                        setTExpenses(response.data.expenses);
+                    }
+                    else
+                        setTExpenses(undefined);
+                    
+                }
+            }
+            catch (error) {
+                console.log("Get Statement Error");
+            }
+            finally {
+                setLoading(false);
+            }
+        };
+        getExpenses();
+        }, [selected]);
 
     const handleCreateReport = () => {
         console.log("Create Report");
+        navigate(`../reports`)
     }
     
+    const handleStaffSelection = (event: SelectChangeEvent<typeof selected>) => {
+        const {
+            target: { 
+                value
+            }
+        } = event;
+        console.log(`handle staff selection: ${value as number}`);
+        setSelected(
+            // On autofill we get a stringified value.
+            value as number
+        );
+    }
 
+    
+      function getStyles(name: string, theme: Theme, user: string) {
+        return {
+          fontWeight: user?.includes(name)
+            ? theme.typography.fontWeightMedium
+            : theme.typography.fontWeightRegular,
+        };
+      }
+      
     return (
         <div style={{ padding: "16px" }}>
-            {/* <Typography variant="h5" gutterBottom>
-                Upload bank statement
-            </Typography> */}
-            {/* <Button
-                variant="contained"
-                component="label"
-                disabled
-                sx={{ mb: 2 }}
-            >
-                Select File
-            </Button> */}
             <Box sx={{
                 float: "right"
             }}>
-                <ButtonGroup disabled={tExpenses ? false : true}>
-                    <Button variant='contained' color='secondary' onClick={handleCreateReport}>Create Report</Button>
-                </ButtonGroup>
+                {!userInfo?.isAdmin ? (
+                    <ButtonGroup disabled={tExpenses ? false : true}>
+                        <Button variant='contained' color='secondary' onClick={handleCreateReport}>Create Report</Button>
+                    </ButtonGroup>
+                ) : (
+                <Select
+                labelId="staff-selection"
+                id="staff-selection"
+                //multiple
+                value={selected}
+                onChange={handleStaffSelection}
+                input={<OutlinedInput 
+                    id="staff-selection" 
+                    label="Staff" 
+                    aria-label="staff-selection" 
+                    // margin='dense'    
+                />}
+                fullWidth
+                MenuProps={MenuProps}
+                sx={{
+                    fontSize: 25
+                }}
+            >
+                {users.map((user) => (
+                    <MenuItem
+                        key={user.card}
+                        value={user.card}
+                        style={getStyles(user.name, theme, user.name)}
+                    >
+                        {user.name}
+                    </MenuItem>
+                ))}
+            </Select>
+                )}
             </Box>
             {transMessage && <Typography variant='subtitle1' marginLeft={5}>{transMessage}</Typography>}
-            {tExpenses && <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Transaction Date</TableCell>
-                            <TableCell>Post Date</TableCell>
-                            <TableCell>Amount</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell>Card Number</TableCell>
-                            <TableCell>Category</TableCell>
-                            <TableCell>Type</TableCell>
-                            <TableCell>Memo</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {tExpenses.map((expense, index) => (
-                            <TableRow key={index}>
-                                <TableCell>{expense.transactionDate}</TableCell>
-                                <TableCell>{expense.postDate}</TableCell>
-                                <TableCell>{expense.amount}</TableCell>
-                                <TableCell>{expense.description}</TableCell>
-                                <TableCell>{expense.cardNumber}</TableCell>
-                                <TableCell>{expense.category}</TableCell>
-                                <TableCell>{expense.type}</TableCell>
-                                <TableCell>{expense.memo}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>}
+            {tExpenses && <GridView config={gridConfig} />}
         </div>
     );
 };
