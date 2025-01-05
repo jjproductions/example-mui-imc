@@ -8,28 +8,31 @@ const AppContext = createContext<appContext | undefined>(undefined);
 
 // Provider component
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [reportItems, setReportItems] = useState<Expense[] | undefined>(undefined);
-  
-    // Function to update the report items
-    const ReportSetUp = (report: Expense[] | undefined) => {
-      setReportItems(report);
-    };
+  const [reportItems, setReportItems] = useState<Expense[] | undefined>(undefined);
+  const [activeReportItem, setActiveReportItem] = useState<Expense | undefined>(undefined);
 
-    const myValue = {
-        reportItems,
-        ReportSetUp
-      }
+  // Function to update the report items
+  const ReportSetUp = (report: Expense[] | undefined) => {
+    setReportItems(report);
+  };
 
-    return (
-        <AppContext.Provider value={myValue}>
-          {children}
-        </AppContext.Provider>
-      );
-    };
+  const myValue = {
+    reportItems,
+    ReportSetUp,
+    activeReportItem,
+    setActiveReportItem
+  }
+
+  return (
+    <AppContext.Provider value={myValue}>
+      {children}
+    </AppContext.Provider>
+  );
+};
 
 // Custom hook for accessing the context
 export const useAppContext = (): appContext => {
-    const context = useContext(AppContext);
+  const context = useContext(AppContext);
   if (!context) {
     throw new Error("useAppContext must be used within an AppProvider");
   }

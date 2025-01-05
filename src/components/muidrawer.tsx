@@ -13,7 +13,7 @@ export const MuiDrawer = () => {
     const navigate = useNavigate();
     const isAdmin = localStorage.getItem('isAdmin') === 'true' ? true : false;
     const token = localStorage.getItem('token');
-    
+
 
     const goTo = (page: string) => {
         setIsDrawerOpen(false);
@@ -48,6 +48,15 @@ export const MuiDrawer = () => {
                         }}
                     >
                         IMC
+                    </Typography>
+                    <Typography variant='h6' component={'div'}
+                        sx={{
+                            //flexGrow: 1,
+                            fontWeight: '800',
+                            float: 'right'
+                        }}
+                    >
+                        {userInfo?.user}
                     </Typography>
                 </Toolbar>
             </AppBar>

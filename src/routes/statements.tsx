@@ -80,7 +80,8 @@ const Statements: React.FC = () => {
                     category: oData[i].Category,
                     description: oData[i].Description,
                     type: oData[i].Type,
-                    memo: oData[i].Memo
+                    memo: oData[i].Memo,
+                    id: null
                 })
             }
 

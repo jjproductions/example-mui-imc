@@ -7,8 +7,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { userInfo, Logout } = useContext(AuthContext);
   let curToken = localStorage.getItem('token');
 
-  console.log(`Protected Route - user:${userInfo?.user} :: token:${curToken}`);
-  
+  // console.log(`Protected Route - user:${userInfo?.user} :: token:${curToken}`);
+
   useEffect(() => {
     if (curToken) {
       // Check if the token is expired (e.g., using JWTs)
@@ -28,7 +28,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       //setIsAuthenticated(false);
     }
   }, []);
-  
+
   if (!userInfo?.user || !curToken) {
     // user is not authenticated
     console.log("Protected Route: not authenticated")

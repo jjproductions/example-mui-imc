@@ -7,6 +7,7 @@ import { AuthContext } from "../hooks/useAuth";
 import { GridView } from "../components/gridView";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../hooks/useAppContext";
+import { report } from "process";
 
 const Expenses: React.FC = () => {
     const { userInfo } = useContext(AuthContext);
@@ -19,11 +20,11 @@ const Expenses: React.FC = () => {
     const navigate = useNavigate();
     const loggedInUser: UserType | null = userInfo;
     let api_url = `${api_domain}/statements`;
-    let gridConfig: gridType = { items: tExpenses, showCheckBox: !userInfo?.isAdmin};
-    
+    let gridConfig: gridType = { items: tExpenses, showCheckBox: !userInfo?.isAdmin };
+
     //console.log(`userInfo: user:${userInfo?.user} role:${userInfo?.role} Admin:${userInfo?.isAdmin}`);
 
-    console.log(`tExpenses: ${JSON.stringify(tExpenses)}`);
+    // console.log(`tExpenses: ${JSON.stringify(tExpenses)}`);
 
     const theme = useTheme();
     const ITEM_HEIGHT = 48;
@@ -38,8 +39,8 @@ const Expenses: React.FC = () => {
     };
     const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
-      "Authorization": auth,
-      "Content-Type": 'application/json',
+        "Authorization": auth,
+        "Content-Type": 'application/json',
     };
 
     const PopulateData = (data: Expense[]) => {
@@ -51,14 +52,15 @@ const Expenses: React.FC = () => {
     }
 
     useEffect(() => {
+        ReportSetUp(undefined);
+        console.log(`expense load: ${reportItems ? 'true' : 'false'} : ${reportItems}`);
         const getUsers = async () => {
             try {
                 if (userInfo?.isAdmin && (users == null || users.length === 0)) {
                     // Get all CC Users
                     const response: users[] = await getCCUsers();
                     console.log(`getUsers first response: ${response.length}`);
-                    if (response && response.length > 1)
-                    {
+                    if (response && response.length > 1) {
                         setUsers(response);
                     }
                     else
@@ -86,9 +88,8 @@ const Expenses: React.FC = () => {
                 else if (userInfo?.isAdmin) {
                     api_url = selected > -1 ? `${api_url}?id=${selected}` : "";
                 }
-                    
-                if (api_url != "") 
-                {
+
+                if (api_url !== "") {
                     console.log(`Calling Api: ${api_url}`);
                     const response = await axios.get(api_url, {
                         headers: userHeaders
@@ -96,14 +97,14 @@ const Expenses: React.FC = () => {
                     const isMultipleTransactions: string = response?.data?.expenses?.length > 1 ? `${response.data.expenses.length} transactions` : "1 transaction";
                     const transCountMessage: string = response?.data?.expenses?.length > 0 ? isMultipleTransactions : "No Transactions Available";
                     ControlVisibility(transCountMessage);
-                    if (response?.data?.expenses?.length > 0){
+                    if (response?.data?.expenses?.length > 0) {
                         PopulateData(response.data.expenses);
-                        console.log(`length: ${response.data.expenses.length} :: expense response: ${JSON.stringify(response.data.expenses)}`);
+                        // console.log(`length: ${response.data.expenses.length} :: expense response: ${JSON.stringify(response.data.expenses)}`);
                         setTExpenses(response.data.expenses);
                     }
                     else
                         setTExpenses(undefined);
-                    
+
                 }
             }
             catch (error) {
@@ -114,16 +115,16 @@ const Expenses: React.FC = () => {
             }
         };
         getExpenses();
-        }, [selected]);
+    }, [selected]);
 
     const handleCreateReport = () => {
-        console.log("Create Report");
+        console.log("Create Report" + { reportItems });
         navigate(`../reports`)
     }
-    
+
     const handleStaffSelection = (event: SelectChangeEvent<typeof selected>) => {
         const {
-            target: { 
+            target: {
                 value
             }
         } = event;
@@ -134,53 +135,54 @@ const Expenses: React.FC = () => {
         );
     }
 
-    
-      function getStyles(name: string, theme: Theme, user: string) {
+
+    function getStyles(name: string, theme: Theme, user: string) {
         return {
-          fontWeight: user?.includes(name)
-            ? theme.typography.fontWeightMedium
-            : theme.typography.fontWeightRegular,
+            fontWeight: user?.includes(name)
+                ? theme.typography.fontWeightMedium
+                : theme.typography.fontWeightRegular,
         };
-      }
-      
+    }
+
+    // console.log(`Report visibility: ${!(reportItems !== undefined && reportItems.length > 0 ? false : true)}`);
     return (
         <div style={{ padding: "16px" }}>
             <Box sx={{
                 float: "right"
             }}>
                 {!userInfo?.isAdmin ? (
-                    <ButtonGroup disabled={tExpenses ? false : true}>
+                    <ButtonGroup disabled={(reportItems !== undefined && reportItems.length > 0 ? false : true)}>
                         <Button variant='contained' color='secondary' onClick={handleCreateReport}>Create Report</Button>
                     </ButtonGroup>
                 ) : (
-                <Select
-                labelId="staff-selection"
-                id="staff-selection"
-                //multiple
-                value={selected}
-                onChange={handleStaffSelection}
-                input={<OutlinedInput 
-                    id="staff-selection" 
-                    label="Staff" 
-                    aria-label="staff-selection" 
-                    // margin='dense'    
-                />}
-                fullWidth
-                MenuProps={MenuProps}
-                sx={{
-                    fontSize: 25
-                }}
-            >
-                {users.map((user) => (
-                    <MenuItem
-                        key={user.card}
-                        value={user.card}
-                        style={getStyles(user.name, theme, user.name)}
+                    <Select
+                        labelId="staff-selection"
+                        id="staff-selection"
+                        //multiple
+                        value={selected}
+                        onChange={handleStaffSelection}
+                        input={<OutlinedInput
+                            id="staff-selection"
+                            label="Staff"
+                            aria-label="staff-selection"
+                        // margin='dense'    
+                        />}
+                        fullWidth
+                        MenuProps={MenuProps}
+                        sx={{
+                            fontSize: 25
+                        }}
                     >
-                        {user.name}
-                    </MenuItem>
-                ))}
-            </Select>
+                        {users.map((user) => (
+                            <MenuItem
+                                key={user.card}
+                                value={user.card}
+                                style={getStyles(user.name, theme, user.name)}
+                            >
+                                {user.name}
+                            </MenuItem>
+                        ))}
+                    </Select>
                 )}
             </Box>
             {transMessage && <Typography variant='subtitle1' marginLeft={5}>{transMessage}</Typography>}

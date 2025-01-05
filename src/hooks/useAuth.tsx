@@ -9,7 +9,7 @@ export const AuthContext = createContext<ProviderProps>({
     userInfo: null,
     token: null,
     Login: async () => null,
-    Logout: () => {},
+    Logout: () => { },
 });
 
 interface login {
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     //const [isAdmin, setIsAdmin] = useState<boolean>(storedAdmin);
     //const [role, setRole] = useState<string | null>(localStorage.getItem("role"))
     const role = localStorage.getItem("role");
-    console.log(`AuthProvider - local user:${storedInfo} :: local token:${storedToken}`);
+    // console.log(`AuthProvider - local user:${storedInfo} :: local token:${storedToken}`);
     const api_login_url = `${api_domain}/signin`;
     const userInfo: UserType = {
         isAdmin: isAdmin,
@@ -59,14 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log(`Login Successful: token=${response.data.access_token}`);
 
             if (response.data.access_token) {
-                console.log(response.data);
+                console.log(`Login Response: ${JSON.stringify(response.data)}`);
                 const curRole: string = response.data.role;
                 const isUserAdmin: boolean = curRole?.includes("Admin") === true ? true : false;
                 //setToken(response.data.access_token);
                 localStorage.setItem('token', response.data.access_token);
                 token = response.data.access_token;
                 setUser(data.email);
-                
+
                 console.log(`${data.email} role is ${curRole.includes("Admin")}:: token:${token}`);
 
                 //setIsAdmin(isUserAdmin);
@@ -92,7 +92,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         localStorage.setItem('token', '');
         localStorage.setItem('role', '');
-        localStorage.setItem('isAdmin', '')
+        localStorage.setItem('isAdmin', '');
+        localStorage.setItem('user', '');
     };
 
     const value = {

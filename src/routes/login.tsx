@@ -1,27 +1,25 @@
 //Registration
 
-import { Button, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { Button, FormControl, IconButton, InputAdornment, InputLabel, OutlinedInput, Stack, TextField, Typography } from '@mui/material'
 import React, { useState, useContext } from 'react'
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { AuthContext } from '../hooks/useAuth';
 import { LoginType } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 export const Login = () => {
     const { Login } = useContext(AuthContext);
-    const [pwVisible, setPwVisible] = useState<boolean>(false);
     const [email, setEmail] = useState<string>('');
     const [pw, setPw] = useState<string>('');
     const emailValidationList = ['@', '.org'];
     const arrayTest = [/[0-9]/, /[a-z]/, /[A-Z]/, /[^0-9a-zA-Z]/];
     const [validationMessage, setValidationMessage] = useState<string>('');
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = React.useState(false);
 
-    const handlePwIcon = () => {
-        setPwVisible(!pwVisible);
-    }
-    const doValidation = async (_event: React.MouseEvent<HTMLElement>) => {
+    const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+    const handleValidation = async () => {
         let isEmailValid = false;
         let isPwValid = false;
         let point = 0;
@@ -59,20 +57,49 @@ export const Login = () => {
         }
     }
 
+    const doValidation = (_event: React.MouseEvent<HTMLElement>) => {
+        handleValidation();
+    }
+
+    const doKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleValidation();
+        }
+    }
+
     return (
         <>
             <Stack direction={'column'} spacing={2} width={'250px'} margin={5}>
                 <TextField label='Email' onChange={(e) => setEmail(e.target.value)} error={!email}
                     helperText={''} />
-                <TextField label='Password' type='password' required helperText='Do not share your password'
-                    slotProps={{
-                        input: {
-                            endAdornment: <InputAdornment position='end'>
-                                {pwVisible ? <VisibilityIcon fontSize='small' onClick={handlePwIcon} /> : <VisibilityOffIcon fontSize='small' onClick={handlePwIcon} />}
+
+                <FormControl sx={{ m: 1, width: '25ch' }} variant="outlined">
+                    <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
+                    <OutlinedInput
+                        id="outlined-adornment-password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        endAdornment={
+                            <InputAdornment position="end">
+                                <IconButton
+                                    aria-label={
+                                        showPassword ? 'hide the password' : 'display the password'
+                                    }
+                                    onClick={handleClickShowPassword}
+                                    edge="end"
+                                >
+                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                </IconButton>
                             </InputAdornment>
                         }
-                    }}
-                    onChange={(e) => setPw(e.target.value)} />
+                        onChange={(e) => setPw(e.target.value)}
+                        onKeyDown={doKeyPress}
+
+                        label="Password"
+                    />
+                </FormControl>
+
                 <Button
                     variant='contained'
                     color='primary'
