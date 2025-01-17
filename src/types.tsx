@@ -22,6 +22,7 @@ export interface Expense {
   category: string;
   type: string;
   memo: string;
+  reportID: number | null;
 }
 
 export interface users {
@@ -57,7 +58,26 @@ export interface gridType {
 
 export interface appContext {
   reportItems: Expense[] | undefined,
-  ReportSetUp: (report: Expense[] | undefined) => void
+  ReportSetUp: (report: Expense[] | undefined) => void,
   activeReportItem: Expense | undefined,
-  setActiveReportItem: (activeReport: Expense | undefined) => void
+  reportExpenses: Expense[] | undefined,
+  setReportExpenses: (ReportExpenses: Expense[] | undefined) => void,
+  editInProgress: boolean,
+  setEditInProgress: (isEdit: boolean) => void
+}
+
+export interface ReportInfo {
+  id: number;
+  name: string;
+  status: string;
+  created: string;
+  modified: string;
+}
+
+export interface ReportHeaderInfo {
+  id: number;
+  name: string;
+  amount: number;
+  cardNumber: number;
+  canEdit: boolean;
 }

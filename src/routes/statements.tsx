@@ -81,23 +81,11 @@ const Statements: React.FC = () => {
                     description: oData[i].Description,
                     type: oData[i].Type,
                     memo: oData[i].Memo,
-                    id: null
+                    id: null,
+                    reportID: null
                 })
             }
 
-            // for (let i = 0; i < oData.length; i++) {
-            //     expenseObj.push({
-            //         Amount: Number(oData[i].Amount),
-            //         CardNumber: Number(oData[i].Card),
-            //         TransactionDate: new Date(oData[i]["Transaction Date"]).toJSON(),
-            //         PostDate: new Date(oData[i]["Post Date"]).toJSON(),
-            //         Category: oData[i].Category,
-            //         Description: oData[i].Description,
-            //         Type: oData[i].Type,
-            //         Memo: oData[i].Memo
-            //     })
-            // }
-            
             // Post data
 
             console.log(`Calling api: ${api_url}`);
@@ -108,7 +96,7 @@ const Statements: React.FC = () => {
                     console.log(request);
                     const response = await axios.post(api_url, request, {
                         headers: userHeaders
-                        });
+                    });
                     handleClear("Data uploaded successfully!");
                 } catch (error) {
                     console.error("Error fetching data:", error);
@@ -123,7 +111,7 @@ const Statements: React.FC = () => {
     }
 
     const handleClear = (message: string | null) => {
-        
+
         setBankStatement(null);
         setFileName(message ?? null);
     }

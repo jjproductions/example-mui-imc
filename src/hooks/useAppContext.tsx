@@ -10,17 +10,24 @@ const AppContext = createContext<appContext | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [reportItems, setReportItems] = useState<Expense[] | undefined>(undefined);
   const [activeReportItem, setActiveReportItem] = useState<Expense | undefined>(undefined);
+  const [reportExpenses, setReportExpenses] = useState<Expense[] | undefined>(undefined);
+  const [editInProgress, setEditInProgress] = useState<boolean>(false);
 
   // Function to update the report items
   const ReportSetUp = (report: Expense[] | undefined) => {
+    console.log(`ReportSetup: ${JSON.stringify(report)}`);
     setReportItems(report);
+    setActiveReportItem(report ? report[0] : undefined);
   };
 
   const myValue = {
     reportItems,
     ReportSetUp,
     activeReportItem,
-    setActiveReportItem
+    reportExpenses,
+    setReportExpenses,
+    editInProgress,
+    setEditInProgress
   }
 
   return (

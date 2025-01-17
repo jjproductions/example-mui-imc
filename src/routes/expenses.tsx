@@ -11,7 +11,7 @@ import { report } from "process";
 
 const Expenses: React.FC = () => {
     const { userInfo } = useContext(AuthContext);
-    const { reportItems, ReportSetUp } = useAppContext();
+    const { reportItems, ReportSetUp, setReportExpenses } = useAppContext();
     const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);
     const [loading, setLoading] = useState<boolean>(false);
     const [transMessage, setTransMessage] = useState<string | null>(null);
@@ -44,7 +44,10 @@ const Expenses: React.FC = () => {
     };
 
     const PopulateData = (data: Expense[]) => {
-        console.log(`PopulateData: ${data.length} :: ${data[1].description}`);
+        if (data !== undefined || data !== null) {
+            setReportExpenses(data);
+            console.log(`PopulateData: ${data.length} :: ${JSON.stringify(data[0])}`);
+        }
     }
 
     const ControlVisibility = (message: string | null) => {

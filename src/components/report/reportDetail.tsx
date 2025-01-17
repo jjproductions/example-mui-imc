@@ -8,9 +8,8 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 
 
 const ReportDetail = () => {
-    const { reportItems, ReportSetUp, setActiveReportItem } = useAppContext();
+    const { reportItems, editInProgress, reportExpenses, setReportExpenses, setEditInProgress } = useAppContext();
     const [reportItem, setReportItem] = useState<Expense | null>(null);
-    const [rows, setRows] = React.useState(reportItems);
     const dummyExpense: Expense = {
         amount: 0,
         category: '',
@@ -20,21 +19,22 @@ const ReportDetail = () => {
         transactionDate: '',
         id: 0,
         postDate: '',
-        type: ''
+        type: '',
+        reportID: null
     }
 
-
+    //Sets state for selected row
     const setReport = (item: Expense | undefined) => {
         item ? setReportItem(item as Expense) : setReportItem(dummyExpense);
-        setActiveReportItem(item);
+
     }
 
     const handleDeleteClick = (id: GridRowId) => () => {
-        if (rows !== undefined) {
-            ReportSetUp(rows.filter((row) => row.id !== id));
-            setRows(rows.filter((row) => row.id !== id));
+        if (reportExpenses !== undefined) {
+            setEditInProgress(true);
+            setReportExpenses(reportExpenses.filter((row) => row.id !== id));
             setReport(undefined);
-            console.log(`Delete: ${id} : ${JSON.stringify(rows.filter((row) => row.id !== id))}`);
+            console.log(`Delete: ${id} : ${JSON.stringify(reportExpenses.filter((row) => row.id !== id))}`);
         }
 
     };
@@ -59,8 +59,34 @@ const ReportDetail = () => {
         },
     ]
 
-    console.log(`selected Item: ${rows?.length} ${JSON.stringify(rows)}`);
+    console.log(`selected Item: ${reportExpenses?.length} ${JSON.stringify(reportExpenses)}`);
 
+    //useEffect(() => {
+    const createGrid = () => {
+        return (
+            <DataGrid
+                rows={reportExpenses}
+                columns={columns}
+                // initialState={{
+                //     pagination: { paginationModel: { pageSize: 3 } },
+                // }}
+                // pageSizeOptions={[3, 7, 10]}
+                autoPageSize
+
+                onRowSelectionModelChange={(select) => {
+                    const selectedIDs = new Set(select);
+                    const selectedRows: Expense[] | undefined = reportExpenses?.filter((row: any) =>
+                        selectedIDs.has(row.id)
+                    );
+                    console.log(`selectedIDs: ${JSON.stringify(selectedIDs)}`)
+                    console.log(`grid select: ${select}`);
+                    console.log(`grid selection: ${JSON.stringify(selectedRows)}`);
+                    (selectedRows != undefined && selectedRows.length > 0) ? setReport(selectedRows[0]) : setReport(undefined);
+                }}
+            />
+        )
+    }
+    //});
 
     return (
         <>
@@ -70,25 +96,7 @@ const ReportDetail = () => {
                     margin: 3,
                     height: 375
                 }}>
-                    <DataGrid
-                        rows={rows}
-                        columns={columns}
-                        // initialState={{
-                        //     pagination: { paginationModel: { pageSize: 3 } },
-                        // }}
-                        // pageSizeOptions={[3, 7, 10]}
-                        autoPageSize
-
-                        onRowSelectionModelChange={(select) => {
-                            const selectedIDs = new Set(select);
-                            const selectedRows: Expense[] | undefined = reportItems?.filter((row: any) =>
-                                selectedIDs.has(row.id)
-                            );
-                            // console.log(`grid select: ${select}`);
-                            console.log(`grid selection: ${JSON.stringify(selectedRows)}`);
-                            (selectedRows != undefined && selectedRows.length > 0) ? setReport(selectedRows[0]) : setReport(undefined);
-                        }}
-                    />
+                    {createGrid()}
                 </Container>
             </div>
             <Box
