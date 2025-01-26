@@ -19,13 +19,22 @@ export const MuiTextField = () => {
                 <TextField label='Small Secondary' size='small' color='secondary' />
             </Stack>
             <Stack direction={'row'} spacing={2}>
-                <TextField label='Form Input' value={value} onChange={(e) => setValue(e.target.value)} error={!value} 
+                <TextField label='Form Input' value={value} onChange={(e) => setValue(e.target.value)} error={!value}
                     helperText={!value ? 'Required' : 'Enter a value'} />
                 <TextField label='Password' type='password' required helperText='Do not share your password'
                     slotProps={{
-                        input: {endAdornment: <InputAdornment position='end'><VisibilityIcon fontSize='small' onClick={handlePwIcon}/></InputAdornment>}   
+                        input: { endAdornment: <InputAdornment position='end'><VisibilityIcon fontSize='small' onClick={handlePwIcon} /></InputAdornment> }
                     }} />
-                <TextField label='Read Only' InputProps={{ readOnly: true }} />
+                <TextField
+                    label=' '
+                    //InputProps={{ readOnly: true }}
+                    variant="standard"
+                    slotProps={{
+                        input: {
+                            disableUnderline: true,
+                        },
+                    }}
+                />
                 <TextField label='Disabled' disabled />
             </Stack>
             <Stack direction={'row'} spacing={2}>

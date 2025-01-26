@@ -57,11 +57,13 @@ export interface gridType {
 }
 
 export interface appContext {
-  reportItems: Expense[] | undefined,
+  newReportItems: Expense[] | undefined,
   ReportSetUp: (report: Expense[] | undefined) => void,
   activeReportItem: Expense | undefined,
-  reportExpenses: Expense[] | undefined,
-  setReportExpenses: (ReportExpenses: Expense[] | undefined) => void,
+  currReportExpenses: Expense[] | undefined,
+  setCurrReportExpenses: (report: Expense[] | undefined) => void,
+  // amountTotal: number,
+  // ReportAmount: (amountChanged: number, amount: number | null) => void,
   editInProgress: boolean,
   setEditInProgress: (isEdit: boolean) => void
 }
@@ -75,9 +77,13 @@ export interface ReportInfo {
 }
 
 export interface ReportHeaderInfo {
-  id: number;
-  name: string;
-  amount: number;
-  cardNumber: number;
-  canEdit: boolean;
+  id?: number;
+  name?: string;
+  amount?: number;
+  cardNumber?: number;
+  canEdit?: boolean;
+  editInProgress: boolean;
+  //currExpenses?: Expense[];
 }
+
+// export interface ReportTot

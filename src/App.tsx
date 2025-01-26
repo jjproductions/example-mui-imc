@@ -26,6 +26,10 @@ function App() {
       errorElement: <ErrorPage />,
       children: [
         {
+          path: '/test1',
+          element: <MuiTextField />
+        },
+        {
           path: '/login',
           element: <Login />
         },

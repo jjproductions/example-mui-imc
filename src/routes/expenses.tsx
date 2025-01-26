@@ -11,12 +11,12 @@ import { report } from "process";
 
 const Expenses: React.FC = () => {
     const { userInfo } = useContext(AuthContext);
-    const { reportItems, ReportSetUp, setReportExpenses } = useAppContext();
-    const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);
+    const { newReportItems, ReportSetUp, setCurrReportExpenses } = useAppContext();
+    const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);  //used for gridview
     const [loading, setLoading] = useState<boolean>(false);
     const [transMessage, setTransMessage] = useState<string | null>(null);
-    const [selected, setSelected] = useState<number>(-1);
-    const [users, setUsers] = useState<users[]>([]);
+    const [selected, setSelected] = useState<number>(-1); //used for staff selection
+    const [users, setUsers] = useState<users[]>([]); //used for staff
     const navigate = useNavigate();
     const loggedInUser: UserType | null = userInfo;
     let api_url = `${api_domain}/statements`;
@@ -43,10 +43,10 @@ const Expenses: React.FC = () => {
         "Content-Type": 'application/json',
     };
 
-    const PopulateData = (data: Expense[]) => {
+    const PopulateData = (data: Expense[] | undefined) => {
         if (data !== undefined || data !== null) {
-            setReportExpenses(data);
-            console.log(`PopulateData: ${data.length} :: ${JSON.stringify(data[0])}`);
+            setTExpenses(data);
+            data && console.log(`PopulateData: ${data.length} :: ${JSON.stringify(data[0])}`);
         }
     }
 
@@ -56,7 +56,8 @@ const Expenses: React.FC = () => {
 
     useEffect(() => {
         ReportSetUp(undefined);
-        console.log(`expense load: ${reportItems ? 'true' : 'false'} : ${reportItems}`);
+        setCurrReportExpenses(undefined);
+        console.log(`expense load: ${newReportItems ? 'true' : 'false'} : ${newReportItems}`);
         const getUsers = async () => {
             try {
                 if (userInfo?.isAdmin && (users == null || users.length === 0)) {
@@ -102,11 +103,11 @@ const Expenses: React.FC = () => {
                     ControlVisibility(transCountMessage);
                     if (response?.data?.expenses?.length > 0) {
                         PopulateData(response.data.expenses);
-                        // console.log(`length: ${response.data.expenses.length} :: expense response: ${JSON.stringify(response.data.expenses)}`);
-                        setTExpenses(response.data.expenses);
+                        localStorage.setItem('userCC', response.data.expenses[0].cardNumber);
+                        console.log(`userCC: ${response.data.expenses[0].cardNumber}`);
                     }
                     else
-                        setTExpenses(undefined);
+                        PopulateData(undefined);
 
                 }
             }
@@ -121,7 +122,8 @@ const Expenses: React.FC = () => {
     }, [selected]);
 
     const handleCreateReport = () => {
-        console.log("Create Report" + { reportItems });
+        console.log("Create Report" + { newReportItems });
+        setCurrReportExpenses(newReportItems);
         navigate(`../reports`)
     }
 
@@ -147,14 +149,14 @@ const Expenses: React.FC = () => {
         };
     }
 
-    // console.log(`Report visibility: ${!(reportItems !== undefined && reportItems.length > 0 ? false : true)}`);
+    // console.log(`Report visibility: ${!(newReportItems !== undefined && newReportItems.length > 0 ? false : true)}`);
     return (
         <div style={{ padding: "16px" }}>
             <Box sx={{
                 float: "right"
             }}>
                 {!userInfo?.isAdmin ? (
-                    <ButtonGroup disabled={(reportItems !== undefined && reportItems.length > 0 ? false : true)}>
+                    <ButtonGroup disabled={(newReportItems !== undefined && newReportItems.length > 0 ? false : true)}>
                         <Button variant='contained' color='secondary' onClick={handleCreateReport}>Create Report</Button>
                     </ButtonGroup>
                 ) : (

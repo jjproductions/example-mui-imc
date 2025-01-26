@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Divider, Stack, Typography } from '@mui/material'
+import { Box, Button, ButtonGroup, Divider, Stack, TextField, Typography } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { useAppContext } from '../../hooks/useAppContext';
 import { useNavigate } from "react-router-dom";
@@ -12,43 +12,43 @@ import axios from 'axios';
 import { Expense, ReportHeaderInfo, ReportInfo } from '../../types';
 import { report } from 'process';
 
-const ReportHeader = () => {
-    const { reportItems, setReportExpenses, reportExpenses, editInProgress, setEditInProgress } = useAppContext();
+const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInProgress }) => {
+    const { newReportItems, currReportExpenses, setCurrReportExpenses } = useAppContext();
     const [loading, setLoading] = useState<boolean>(false);
-    const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>();
-    const [selectedValue, setSelectedValue] = useState<string | undefined>("-1");
+    const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>(); //used for report details
+    const [selectedValue, setSelectedValue] = useState<string | undefined>("-1"); //used for report selection
+    const [editInProgressFlag, setEditInProgressFlag] = useState<boolean>(editInProgress); //used to signal if edits are in progress
+    const initialReportName: string = "New Report"; //used for New Report Dropdown name
+    const [newReportName, setNewReportName] = useState<string>(""); //used only for new report name
     const navigate = useNavigate();
-    let tempAmount: number = 0;
     const myDate = new Date;
-    const api_url = `${api_domain}/reports?rptId=`;
+    const api_url = `${api_domain}/reports`;
+    const api_url_statements_report = `${api_domain}/statements/report`;
+    const api_url_statements = `${api_domain}/statements`;
     const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
         "Authorization": auth,
         "Content-Type": 'application/json',
     };
-    let rptCount: number = 0;
+    // let editInProgressFlag: boolean = editInProgress;
     const initRptHeaderInfo: ReportHeaderInfo = {
-        amount: 0,
+        //amount: amount,
         id: -1,
-        name: "New Report",
-        cardNumber: 0,
-        canEdit: false
+        name: "",
+        cardNumber: amount,
+        canEdit: false,
+        editInProgress: editInProgressFlag
     }
-    const [reportHeaderData, setReportHeaderData] = useState<ReportHeaderInfo>(initRptHeaderInfo);
+    //may not need this
+    const [reportHeaderData, setReportHeaderData] = useState<ReportHeaderInfo>(initRptHeaderInfo); //used for report header info
 
     //Sets the Header info once per Report selection
     useEffect(() => {
-        if (reportExpenses != undefined) {
-            console.log(`Setting Header Info: ${JSON.stringify(reportExpenses)}`);
-            tempAmount = 0;
-            reportExpenses?.map((item) => {
-                tempAmount += item.amount;
-            });
+        if (cardNumber !== 0) {
+            console.log(`Setting Header Info:newreportItems ${JSON.stringify(newReportItems)}`);
             setReportHeaderData((currState: ReportHeaderInfo) => ({
                 ...currState,
-                amount: tempAmount,
-                cardNumber: reportExpenses[0] != undefined ? reportExpenses[0].cardNumber : 0,
-                canEdit: true
+                canEdit: true //Need to revisit this for Submitted Reports
             }));
             console.log(`Setting Header Info: ${JSON.stringify(reportHeaderData)}`);
         }
@@ -56,41 +56,65 @@ const ReportHeader = () => {
             console.log("resetting Header Info");
             setReportHeaderData(initRptHeaderInfo);
         }
-    }, [reportExpenses])
+    }, [amount])
 
 
     //Initial call to populate the Reports dropdown
     useEffect(() => {
-        if (reportExpenses !== undefined) {
-            const getOpenReports = async () => {
-                try {
-                    console.log(`Calling Api: ${api_url}${reportExpenses[0].cardNumber}`);
-                    const response = await axios.get(api_url + reportExpenses[0].cardNumber, {
-                        headers: userHeaders
-                    });
-                    console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
-                    setReportInfo(response.data.reports);
-                }
-                catch (error) {
-                    console.log("Get Open Reports Error");
-                }
-                finally {
-                    setLoading(true);
-                }
+        const getOpenReports = async () => {
+            try {
+                console.log(`Calling Api: ${api_url}?id=${cardNumber}`);
+                const response = await axios.get(api_url + "?id=" + cardNumber, {
+                    headers: userHeaders
+                });
+                console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
+                setReportInfo(response.data.reports);
             }
-            getOpenReports();
+            catch (error) {
+                console.log("Get Open Reports Error");
+            }
+            finally {
+                setLoading(true);
+            }
         }
+        getOpenReports();
     }, []);
 
+    useEffect(() => {
+        setEditInProgressFlag(editInProgress);
+        console.log(`ReportHeader:EditInProgressFlag: ${editInProgressFlag}`);
+    }, [editInProgress]);
+
+    //Get statements for the selected Report
+    const GetSelectedReportInfo = async (reportID: number) => {
+        try {
+            console.log(`Calling Api: ${api_url_statements_report}?id=${reportID}`);
+            const response = await axios.get(api_url_statements_report + "?id=" + reportID, {
+                headers: userHeaders
+            });
+            console.log(`GetSelectedReportInfo call returned: ${JSON.stringify(response.data.expenses)}`);
+            setCurrReportExpenses(response.data.expenses);
+        }
+        catch (error) {
+            console.log("GetSelectedReportInfo Error");
+        }
+        finally {
+            setLoading(true);
+        }
+    }
+
     const handleUpdatingViews = (data: Expense[] | undefined) => {
-        setReportExpenses(data);
-        setEditInProgress(false);
+        setEditInProgressFlag(false);
+        console.log(`handleUpdatingViews:editInProgressFlag ${JSON.stringify(editInProgressFlag)}`);
 
     }
 
     const handleSwitchReports = (event: SelectChangeEvent<string>) => {
-        if (selectedValue === "-1" || editInProgress) {
-            console.log(`Switching Reports: ${selectedValue} : ${editInProgress}`);
+        console.log(`Switching Reports:editInProgressFlag ${selectedValue} : ${editInProgressFlag}`);
+        var index = (event.target as HTMLSelectElement).selectedIndex;
+
+
+        if (selectedValue === "-1" || editInProgressFlag) {
             const userConfirmed = window.confirm("Are you sure you want to switch reports?  You will lose any unsaved changes.");
             if (!userConfirmed) {
                 setSelectedValue(selectedValue);
@@ -98,23 +122,31 @@ const ReportHeader = () => {
             }
         }
 
+        if (event.target.value === "-1") {
+            //handleCancel(false);
+            setEditInProgressFlag(true);
+        }
+        else setEditInProgressFlag(false);
+
+        GetSelectedReportInfo(parseInt(event.target.value));
         setSelectedValue(event.target.value);
-        console.log(`event ID: ${parseInt(event.target.value)} : ${JSON.stringify(selectedValue)} : ${JSON.stringify(editInProgress)}`);
+        console.log(`event ID: ${parseInt(event.target.value)} : ${JSON.stringify(selectedValue)} : ${JSON.stringify(editInProgressFlag)}`);
         setReportHeaderData((currState: ReportHeaderInfo) => ({
             ...currState,
-            canEdit: reportInfo && reportInfo[parseInt(event.target.value)]?.status === "SUBMITTED" ? false : true
+            canEdit: reportInfo && reportInfo[parseInt(event.target.value)]?.status === "SUBMITTED" ? false : true,
+            name: (event.target as HTMLSelectElement)[index].innerText
         }));
-        //use report ID to filter reportExpenses and call ReportSetup
-        if (event.target.value == "-1") {
-            handleCancel(false);
-        }
-        console.log(`Report Items: ${JSON.stringify(reportItems)}`);
-        const selectedReport: Expense[] | undefined = reportItems?.filter((rpt) => rpt.reportID === parseInt(event.target.value));
-        console.log(`Selected Report: ${JSON.stringify(selectedReport)}`);
-        if (selectedReport != undefined && selectedReport.length > 0)
-            handleUpdatingViews(selectedReport)
-        else
-            console.log(`handleSwitchReports returned empty data: ${JSON.stringify(selectedReport)}`);
+
+
+
+        //use report ID to and call the API to get the report details***
+        // console.log(`Report Items: ${JSON.stringify(newReportItems)} : current items - ${JSON.stringify(currReportExpenses)}`);
+        // const selectedReport: Expense[] | undefined = newReportItems?.filter((rpt) => rpt.reportID === parseInt(event.target.value));
+        // console.log(`Selected Report: ${JSON.stringify(selectedReport)}`);
+        // if (selectedReport !== undefined && selectedReport.length > 0)
+        //     handleUpdatingViews(selectedReport)
+        // else
+        //     console.log(`handleSwitchReports returned empty data: ${JSON.stringify(selectedReport)}`);
     }
 
 
@@ -149,7 +181,7 @@ const ReportHeader = () => {
         if (userConfirmed) {
             // Proceed with delete logic
             console.log("Report deleted");
-            setEditInProgress(false);
+            setEditInProgressFlag(false);
             // alert deleted notification
             // navigate to expenses
             // Add your delete logic here
@@ -160,7 +192,12 @@ const ReportHeader = () => {
     }
 
     const handleSave = () => {
-        setEditInProgress(false);
+        console.log(`handleSave: ${selectedValue}`);
+        newReportName.trim() === "" && selectedValue === "-1" ?
+            window.alert("Please enter a report name") :
+            (
+                saveNewReport()
+            )
         //Report saved alert
     }
 
@@ -201,17 +238,49 @@ const ReportHeader = () => {
         )
     }
 
+    const handleNewReportNamcChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setNewReportName(event.target.value);
+    }
+
+    const saveNewReport = async () => {
+        console.log(`Calling Api: ${api_url_statements}?id=${selectedValue}`)
+        console.log(`saveNewReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
+        const response = await axios.post(api_url_statements + "?id=" + selectedValue, currReportExpenses, {
+            headers: userHeaders
+        });
+        // Call to reset the report dropdown ***
+        console.log(`saveNewReport call returned: ${JSON.stringify(response.data.expenses)}`);
+        setEditInProgressFlag(false)
+    }
+
+    console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`)
+    console.log(`ReportHeader:EditInProgress ${JSON.stringify(editInProgress)} : ${JSON.stringify(editInProgressFlag)}`);
     return (
         <>
-            <Stack direction={'row'} >
+            <Stack direction={'row'} marginTop={2} marginBottom={1}>
                 <Typography variant='subtitle1' marginLeft={15}>{myDate.toDateString()}</Typography>
-                <Typography
-                    variant='subtitle1'
-                    marginLeft={5}
-                    textAlign={'center'}
-                >
-                    {reportHeaderData.name}</Typography>
-                <Typography variant='subtitle1' marginLeft={15}>${reportHeaderData.amount.toFixed(2)}</Typography>
+                {reportHeaderData.name === "" ? (
+                    <TextField
+                        label='Enter report name'
+                        variant="outlined"
+                        sx={{ marginLeft: 4 }}
+                        value={newReportName}
+                        onChange={handleNewReportNamcChange}
+                    />
+                ) : (
+                    <TextField
+                        label=' '
+                        variant="standard"
+                        slotProps={{
+                            input: {
+                                disableUnderline: true,
+                            },
+                        }}
+                        value={reportHeaderData.name}
+                        sx={{ marginLeft: 12 }}
+                    />
+                )}
+                <Typography variant='subtitle1' marginLeft={12}>${amount?.toFixed(2)}</Typography>
                 <Box sx={{
                     marginLeft: "100px"
                 }}>
@@ -219,13 +288,13 @@ const ReportHeader = () => {
                         <Button
                             variant="contained"
                             onClick={handleButtonClicks}
-                            disabled={!reportHeaderData.canEdit}
+                            disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
                         >
                             Save</Button>
                         <Button
                             variant="outlined"
                             onClick={handleButtonClicks}
-                            disabled={!reportHeaderData.canEdit}
+                            disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
                         >
                             Delete</Button>
                         <Button
@@ -238,7 +307,7 @@ const ReportHeader = () => {
                 </Box>
             </Stack>
             <Stack direction={'row'} marginTop={0} marginBottom={1}>
-                <Typography variant='subtitle1' marginLeft={20}>xxx{reportHeaderData.cardNumber}</Typography>
+                <Typography variant='subtitle1' marginLeft={20}>xxx{cardNumber}</Typography>
                 {loading ? (
                     reportInfo?.length ? (
                         <FormControl sx={{
@@ -254,7 +323,7 @@ const ReportHeader = () => {
                                 value={selectedValue}
                                 onChange={handleSwitchReports}
                             >
-                                <option aria-label="None" value="-1" key={-1}>New Report</option>
+                                <option aria-label="None" value="-1" key={-1}>{initialReportName}</option>
                                 {createReportDropDown()};
                             </Select>
                         </FormControl>

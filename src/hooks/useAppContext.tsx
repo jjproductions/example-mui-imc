@@ -8,24 +8,31 @@ const AppContext = createContext<appContext | undefined>(undefined);
 
 // Provider component
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [reportItems, setReportItems] = useState<Expense[] | undefined>(undefined);
-  const [activeReportItem, setActiveReportItem] = useState<Expense | undefined>(undefined);
-  const [reportExpenses, setReportExpenses] = useState<Expense[] | undefined>(undefined);
-  const [editInProgress, setEditInProgress] = useState<boolean>(false);
+  const [newReportItems, setNewReportItems] = useState<Expense[] | undefined>(undefined); //expenses for current report
+  const [activeReportItem, setActiveReportItem] = useState<Expense | undefined>(undefined); //expense detail for current report
+  //const [amountTotal, setAmountTotal] = useState<number>(0); //total amount for current report
+  const [currReportExpenses, setCurrReportExpenses] = useState<Expense[] | undefined>(undefined);  //expenses included in current report
+  const [editInProgress, setEditInProgress] = useState<boolean>(false); //flag to indicate if an edit is in progress
 
   // Function to update the report items
   const ReportSetUp = (report: Expense[] | undefined) => {
     console.log(`ReportSetup: ${JSON.stringify(report)}`);
-    setReportItems(report);
+    setNewReportItems(report);
     setActiveReportItem(report ? report[0] : undefined);
   };
 
+  // const ReportAmount = (amountChanged: number, amount: number | null = null) => {
+  //   setAmountTotal(amount ? amount as number : amountTotal + amountChanged);
+  // }
+
   const myValue = {
-    reportItems,
+    newReportItems,
     ReportSetUp,
     activeReportItem,
-    reportExpenses,
-    setReportExpenses,
+    currReportExpenses,
+    setCurrReportExpenses,
+    // amountTotal,
+    // ReportAmount,
     editInProgress,
     setEditInProgress
   }

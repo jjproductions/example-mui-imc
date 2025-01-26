@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../../hooks/useAppContext';
-import { Box, Container, Divider, FilledInput, FormControl, InputAdornment, InputLabel, OutlinedInput, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Container, Divider, FilledInput, FormControl, InputAdornment, InputLabel, OutlinedInput, Stack, TextField, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowId } from '@mui/x-data-grid';
 import { Expense, gridType } from "../../types";
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
-
+import ReportHeader from './reportHeader';
+import { report } from 'process';
 
 
 const ReportDetail = () => {
-    const { reportItems, editInProgress, reportExpenses, setReportExpenses, setEditInProgress } = useAppContext();
+    const { currReportExpenses, setCurrReportExpenses } = useAppContext();
     const [reportItem, setReportItem] = useState<Expense | null>(null);
+    const [reportAmountTotal, setReportAmountTotal] = useState<number>(5);
+    const navigate = useNavigate();
+    const [editMode, setEditMode] = useState<boolean>(true);
+    const cardNumber: number = localStorage.getItem('userCC') ? parseInt(localStorage.getItem("userCC") as string) : 0;
+    let reportAmount: number = 0;
     const dummyExpense: Expense = {
         amount: 0,
         category: '',
@@ -23,6 +30,17 @@ const ReportDetail = () => {
         reportID: null
     }
 
+
+    //Calculate total amount for report
+    useEffect(() => {
+        reportAmount = 0;
+        currReportExpenses?.map((row) => {
+            reportAmount += row.amount;
+        })
+        setReportAmountTotal(reportAmount);
+    }, [currReportExpenses]);
+
+
     //Sets state for selected row
     const setReport = (item: Expense | undefined) => {
         item ? setReportItem(item as Expense) : setReportItem(dummyExpense);
@@ -30,11 +48,11 @@ const ReportDetail = () => {
     }
 
     const handleDeleteClick = (id: GridRowId) => () => {
-        if (reportExpenses !== undefined) {
-            setEditInProgress(true);
-            setReportExpenses(reportExpenses.filter((row) => row.id !== id));
+        if (currReportExpenses !== undefined) {
+            setEditMode(true);
+            setCurrReportExpenses(currReportExpenses.filter((row) => row.id !== id));
             setReport(undefined);
-            console.log(`Delete: ${id} : ${JSON.stringify(reportExpenses.filter((row) => row.id !== id))}`);
+            console.log(`Delete: ${id} : ${JSON.stringify(currReportExpenses.filter((row) => row.id !== id))}`);
         }
 
     };
@@ -59,13 +77,12 @@ const ReportDetail = () => {
         },
     ]
 
-    console.log(`selected Item: ${reportExpenses?.length} ${JSON.stringify(reportExpenses)}`);
+    console.log(`selected Item: ${currReportExpenses?.length} ${JSON.stringify(currReportExpenses)}`);
 
-    //useEffect(() => {
     const createGrid = () => {
         return (
             <DataGrid
-                rows={reportExpenses}
+                rows={currReportExpenses}
                 columns={columns}
                 // initialState={{
                 //     pagination: { paginationModel: { pageSize: 3 } },
@@ -75,7 +92,7 @@ const ReportDetail = () => {
 
                 onRowSelectionModelChange={(select) => {
                     const selectedIDs = new Set(select);
-                    const selectedRows: Expense[] | undefined = reportExpenses?.filter((row: any) =>
+                    const selectedRows: Expense[] | undefined = currReportExpenses?.filter((row: any) =>
                         selectedIDs.has(row.id)
                     );
                     console.log(`selectedIDs: ${JSON.stringify(selectedIDs)}`)
@@ -86,75 +103,92 @@ const ReportDetail = () => {
             />
         )
     }
-    //});
 
     return (
         <>
+            <ReportHeader amount={reportAmountTotal} cardNumber={cardNumber} editInProgress={editMode} />
             <Divider variant='middle' color='secondary' />
-            <div style={{ width: 675 }}>
-                <Container sx={{
-                    margin: 3,
-                    height: 375
-                }}>
-                    {createGrid()}
-                </Container>
-            </div>
-            <Box
-                component="form"
-                sx={{ '& > :not(style)': { marginTop: 3, width: '20ch' } }}
-                noValidate
-                autoComplete="off"
-            >
-                <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 5 }}>
-                    <InputLabel htmlFor="outlined-adornment-amount">Amount</InputLabel>
-                    <FilledInput
-                        id="filledlined-adornment-amount"
-                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                        value={reportItem?.amount}
-                    />
-                </FormControl>
-                <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 2 }}>
-                    <InputLabel htmlFor="outlined-adornment-vendor">Vendor</InputLabel>
-                    <FilledInput
-                        id="filledlined-adornment-vendor"
-                        startAdornment={<InputAdornment position="start"></InputAdornment>}
-                        value={reportItem?.description}
-                    />
-                </FormControl>
+            {currReportExpenses ? (
+                <div style={{ width: 675 }}>
+                    <Container sx={{
+                        margin: 3,
+                        height: 375
+                    }}>
+                        {createGrid()}
+                    </Container>
+                </div>
+            ) : (
+                <>
+                    {/* <Typography variant='h6' color='secondary' sx={{ marginLeft: 5 }}>No expenses to report.</Typography> */}
+                    <Button
+                        variant='outlined'
+                        color='primary'
+                        sx={{ margin: 5 }} onClick={() => navigate(`../expenses`)}>Add expense</Button>
+                </>
 
-            </Box>
-            <Box
-                component="form"
-                sx={{ '& > :not(style)': { marginTop: 3, width: '20ch' } }}
-                noValidate
-                autoComplete="off"
-            >
-                <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 5 }}>
-                    <InputLabel htmlFor="outlined-adornment-tdate">Transaction Date</InputLabel>
-                    <FilledInput
-                        id="filledlined-adornment-tdate"
-                        startAdornment={<InputAdornment position="start"></InputAdornment>}
-                        value={reportItem?.transactionDate}
-                    />
-                </FormControl>
-                <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 2 }}>
-                    <InputLabel htmlFor="outlined-adornment-category">Category</InputLabel>
-                    <FilledInput
-                        id="filledlined-adornment-category"
-                        startAdornment={<InputAdornment position="start"></InputAdornment>}
-                        value={reportItem?.category}
-                    />
+            )}
+            {reportItem !== null && reportItem.id !== 0 ? (
+                <>
+                    <Box
+                        component="form"
+                        sx={{ '& > :not(style)': { marginTop: 3, width: '20ch' } }}
+                        noValidate
+                        autoComplete="off"
+                    >
+                        <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 5 }}>
+                            <InputLabel htmlFor="outlined-adornment-amount">Amount</InputLabel>
+                            <FilledInput
+                                id="filledlined-adornment-amount"
+                                startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                value={reportItem?.amount}
+                            />
+                        </FormControl>
+                        <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 2 }}>
+                            <InputLabel htmlFor="outlined-adornment-vendor">Vendor</InputLabel>
+                            <FilledInput
+                                id="filledlined-adornment-vendor"
+                                startAdornment={<InputAdornment position="start"></InputAdornment>}
+                                value={reportItem?.description}
+                            />
+                        </FormControl>
 
-                </FormControl>
-            </Box>
-            <TextField
-                id="outlined-basic"
-                // multiline
-                label="Memo"
-                variant="outlined"
-                sx={{ marginLeft: 5, marginTop: 2, width: 420 }}
-                value={reportItem?.memo}
-            />
+                    </Box>
+                    <Box
+                        component="form"
+                        sx={{ '& > :not(style)': { marginTop: 3, width: '20ch' } }}
+                        noValidate
+                        autoComplete="off"
+                    >
+                        <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 5 }}>
+                            <InputLabel htmlFor="outlined-adornment-tdate">Transaction Date</InputLabel>
+                            <FilledInput
+                                id="filledlined-adornment-tdate"
+                                startAdornment={<InputAdornment position="start"></InputAdornment>}
+                                value={reportItem?.transactionDate}
+                            />
+                        </FormControl>
+                        <FormControl disabled variant='filled' fullWidth sx={{ marginLeft: 2 }}>
+                            <InputLabel htmlFor="outlined-adornment-category">Category</InputLabel>
+                            <FilledInput
+                                id="filledlined-adornment-category"
+                                startAdornment={<InputAdornment position="start"></InputAdornment>}
+                                value={reportItem?.category}
+                            />
+
+                        </FormControl>
+                    </Box>
+                    <TextField
+                        id="outlined-basic"
+                        // multiline
+                        label="Memo"
+                        variant="outlined"
+                        sx={{ marginLeft: 5, marginTop: 2, width: 420 }}
+                        value={reportItem?.memo}
+                    />
+                </>
+            ) : (
+                <></>
+            )}
         </>
     )
 }
