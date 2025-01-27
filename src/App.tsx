@@ -7,6 +7,7 @@ import { MuiTextField } from './components/muitextfield';
 import { MuiSelect } from './components/muiselect';
 import { MuiNavBar } from './components/muiNavbar';
 import { MuiDrawer } from './components/muidrawer';
+import Receipt from './routes/test/receipt'; // Adjust the path as necessary
 
 import Expenses from './routes/expenses';
 import Login from './routes/login';
@@ -26,8 +27,12 @@ function App() {
       errorElement: <ErrorPage />,
       children: [
         {
-          path: '/test1',
+          path: '/test/test1',
           element: <MuiTextField />
+        },
+        {
+          path: '/test/receipt',
+          element: <Receipt />
         },
         {
           path: '/login',

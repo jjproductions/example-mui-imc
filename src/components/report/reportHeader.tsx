@@ -9,8 +9,8 @@ import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { api_domain } from '../../utilities';
 import axios from 'axios';
-import { Expense, ReportHeaderInfo, ReportInfo } from '../../types';
-import { report } from 'process';
+import { Expense, ReportHeaderInfo, ReportInfo, ReportUpdate, StatementUpdate } from '../../types';
+
 
 const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInProgress }) => {
     const { newReportItems, currReportExpenses, setCurrReportExpenses } = useAppContext();
@@ -59,25 +59,29 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
     }, [amount])
 
 
+    const getOpenReports = async (rptId: number | undefined) => {
+        try {
+            setLoading(true);
+            console.log(`Calling Api: ${api_url}?id=${cardNumber}`);
+            const response = await axios.get(api_url + "?id=" + cardNumber, {
+                headers: userHeaders
+            });
+            console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
+            setReportInfo(response.data.reports);
+            rptId && setSelectedValue(rptId?.toString());
+        }
+        catch (error) {
+            console.log("Get Open Reports Error");
+        }
+        finally {
+            setLoading(false);
+        }
+    }
+
+
     //Initial call to populate the Reports dropdown
     useEffect(() => {
-        const getOpenReports = async () => {
-            try {
-                console.log(`Calling Api: ${api_url}?id=${cardNumber}`);
-                const response = await axios.get(api_url + "?id=" + cardNumber, {
-                    headers: userHeaders
-                });
-                console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
-                setReportInfo(response.data.reports);
-            }
-            catch (error) {
-                console.log("Get Open Reports Error");
-            }
-            finally {
-                setLoading(true);
-            }
-        }
-        getOpenReports();
+        getOpenReports(undefined);
     }, []);
 
     useEffect(() => {
@@ -88,6 +92,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
     //Get statements for the selected Report
     const GetSelectedReportInfo = async (reportID: number) => {
         try {
+            setLoading(true);
             console.log(`Calling Api: ${api_url_statements_report}?id=${reportID}`);
             const response = await axios.get(api_url_statements_report + "?id=" + reportID, {
                 headers: userHeaders
@@ -99,7 +104,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             console.log("GetSelectedReportInfo Error");
         }
         finally {
-            setLoading(true);
+            setLoading(false);
         }
     }
 
@@ -123,8 +128,9 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         }
 
         if (event.target.value === "-1") {
-            //handleCancel(false);
-            setEditInProgressFlag(true);
+            handleUpdatingViews(undefined);
+            navigate(`../expenses`);
+            return;
         }
         else setEditInProgressFlag(false);
 
@@ -215,19 +221,19 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         console.log(`Pending Reports: ${JSON.stringify(pendingReports)}`);
         return (
             <>
-                {returnedReports ? (
+                {(returnedReports?.length ?? 0) > 0 ? (
                     <>
                         <optgroup label="Returned">
-                            {returnedReports.map((rpt) => (
+                            {returnedReports?.map((rpt) => (
                                 <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
                             ))}
                         </optgroup>
                     </>
                 ) : <></>}
 
-                {pendingReports ? (
+                {(pendingReports?.length ?? 0 > 0) ? (
                     <optgroup label="Pending">
-                        {pendingReports.map((rpt) => (
+                        {pendingReports?.map((rpt) => (
                             <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
                         ))
                         }
@@ -243,14 +249,48 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
     }
 
     const saveNewReport = async () => {
-        console.log(`Calling Api: ${api_url_statements}?id=${selectedValue}`)
+        console.log(`Calling Api: ${api_url_statements} for Report id; ${selectedValue}`)
         console.log(`saveNewReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
-        const response = await axios.post(api_url_statements + "?id=" + selectedValue, currReportExpenses, {
-            headers: userHeaders
-        });
-        // Call to reset the report dropdown ***
-        console.log(`saveNewReport call returned: ${JSON.stringify(response.data.expenses)}`);
-        setEditInProgressFlag(false)
+        let reportFinal: ReportUpdate = {
+            cardNumber: cardNumber as number,
+            reportName: newReportName.trim() === "" ? initialReportName : newReportName,
+            reportId: selectedValue === "-1" ? undefined : parseInt(selectedValue as string),
+            reportMemo: '',
+            statements: []
+        }
+        let updatedStatements: StatementUpdate;
+        currReportExpenses && currReportExpenses.map((item) => {
+            item.reportID = parseInt(selectedValue as string);
+            updatedStatements = {
+                id: item.id as number,
+                reportId: reportFinal.reportId,
+                category: item.category,
+                description: item.description,
+                type: item.type,
+                memo: item.memo
+            }
+            reportFinal.statements.push(updatedStatements);
+        })
+
+        try {
+            const response = await axios.post(api_url_statements, reportFinal, {
+                headers: userHeaders
+            });
+            console.log(`saveNewReport call returned: ${JSON.stringify(response.data)}`);
+            // Call to reset the report dropdown ***
+
+            if (response.data > 0) {
+                console.log(`saveNewReport calling getOpenReports: }`);
+                getOpenReports(response.data); //refresh the report dropdown
+                setEditInProgressFlag(false)
+            }
+        } catch (error) {
+            console.log(`saveNewReport error: ${error}`);
+        } finally {
+
+        }
+
+
     }
 
     console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`)
@@ -308,7 +348,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             </Stack>
             <Stack direction={'row'} marginTop={0} marginBottom={1}>
                 <Typography variant='subtitle1' marginLeft={20}>xxx{cardNumber}</Typography>
-                {loading ? (
+                {!loading ? (
                     reportInfo?.length ? (
                         <FormControl sx={{
                             marginTop: 2,
@@ -323,7 +363,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
                                 value={selectedValue}
                                 onChange={handleSwitchReports}
                             >
-                                <option aria-label="None" value="-1" key={-1}>{initialReportName}</option>
+                                <option aria-label="None" value="-1" key={-1}>{selectedValue === "-1" ? initialReportName : "Add New Expense"}</option>
                                 {createReportDropDown()};
                             </Select>
                         </FormControl>

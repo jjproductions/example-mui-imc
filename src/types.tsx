@@ -86,4 +86,19 @@ export interface ReportHeaderInfo {
   //currExpenses?: Expense[];
 }
 
-// export interface ReportTot
+export interface StatementUpdate {
+  id: number;
+  reportId?: number;
+  category: string;
+  description: string;
+  type: string;
+  memo?: string;
+}
+
+export interface ReportUpdate {
+  cardNumber: number;
+  reportMemo?: string;
+  reportName: string;
+  reportId?: number;
+  statements: StatementUpdate[];
+}
