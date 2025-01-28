@@ -13,7 +13,7 @@ import { Expense, ReportHeaderInfo, ReportInfo, ReportUpdate, StatementUpdate } 
 
 
 const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInProgress }) => {
-    const { newReportItems, currReportExpenses, setCurrReportExpenses } = useAppContext();
+    const { newReportItems, ReportSetUp, currReportExpenses, setCurrReportExpenses, currReportItemsToDelete, setCurrReportItemsToDelete } = useAppContext();
     const [loading, setLoading] = useState<boolean>(false);
     const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>(); //used for report details
     const [selectedValue, setSelectedValue] = useState<string | undefined>("-1"); //used for report selection
@@ -69,6 +69,13 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
             setReportInfo(response.data.reports);
             rptId && setSelectedValue(rptId?.toString());
+            setReportHeaderData((currState: ReportHeaderInfo) => ({
+                ...currState,
+                name: newReportName.trim(),
+                id: rptId,
+                editInProgress: false
+            }));
+            setEditInProgressFlag(rptId === -1 ? true : false)
         }
         catch (error) {
             console.log("Get Open Reports Error");
@@ -119,6 +126,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         var index = (event.target as HTMLSelectElement).selectedIndex;
 
 
+        // goin from new report to existing report
         if (selectedValue === "-1" || editInProgressFlag) {
             const userConfirmed = window.confirm("Are you sure you want to switch reports?  You will lose any unsaved changes.");
             if (!userConfirmed) {
@@ -127,12 +135,21 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             }
         }
 
+        // goin from existing report to new report
         if (event.target.value === "-1") {
             handleUpdatingViews(undefined);
             navigate(`../expenses`);
             return;
         }
-        else setEditInProgressFlag(false);
+
+
+        selectedValue === "-1" && (
+
+            ReportSetUp(undefined)
+
+        )
+
+        setEditInProgressFlag(false);
 
         GetSelectedReportInfo(parseInt(event.target.value));
         setSelectedValue(event.target.value);
@@ -142,7 +159,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             canEdit: reportInfo && reportInfo[parseInt(event.target.value)]?.status === "SUBMITTED" ? false : true,
             name: (event.target as HTMLSelectElement)[index].innerText
         }));
-
+        setCurrReportItemsToDelete([]);
 
 
         //use report ID to and call the API to get the report details***
@@ -202,7 +219,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         newReportName.trim() === "" && selectedValue === "-1" ?
             window.alert("Please enter a report name") :
             (
-                saveNewReport()
+                updateReport()
             )
         //Report saved alert
     }
@@ -248,14 +265,15 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         setNewReportName(event.target.value);
     }
 
-    const saveNewReport = async () => {
-        console.log(`Calling Api: ${api_url_statements} for Report id; ${selectedValue}`)
+    const updateReport = async () => {
+        console.log(`Calling Api: ${api_url_statements} for Report id: ${selectedValue}`)
         console.log(`saveNewReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
         let reportFinal: ReportUpdate = {
             cardNumber: cardNumber as number,
-            reportName: newReportName.trim() === "" ? initialReportName : newReportName,
+            reportName: selectedValue === "-1" ? (newReportName.trim() === "" ? initialReportName : newReportName) : reportHeaderData.name as string,
             reportId: selectedValue === "-1" ? undefined : parseInt(selectedValue as string),
             reportMemo: '',
+            itemsToDelete: currReportItemsToDelete,
             statements: []
         }
         let updatedStatements: StatementUpdate;
@@ -272,6 +290,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             reportFinal.statements.push(updatedStatements);
         })
 
+        console.log(`saveNewReport: items to delete - ${JSON.stringify(reportFinal)}`);
         try {
             const response = await axios.post(api_url_statements, reportFinal, {
                 headers: userHeaders
@@ -280,9 +299,13 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             // Call to reset the report dropdown ***
 
             if (response.data > 0) {
-                console.log(`saveNewReport calling getOpenReports: }`);
-                getOpenReports(response.data); //refresh the report dropdown
-                setEditInProgressFlag(false)
+                console.log(`saveNewReport calling getOpenReports: `);
+                setCurrReportItemsToDelete([]);
+                if (selectedValue === "-1") {
+                    getOpenReports(response.data); //refresh the report dropdown only if it's a new report                    
+                    ReportSetUp(undefined)
+                }
+                console.log(`saveNewReport header Data: ${JSON.stringify(reportHeaderData)}`);
             }
         } catch (error) {
             console.log(`saveNewReport error: ${error}`);
@@ -293,12 +316,13 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
 
     }
 
+    console.log(`New Report Items: ${JSON.stringify(newReportItems)}`);
     console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`)
     console.log(`ReportHeader:EditInProgress ${JSON.stringify(editInProgress)} : ${JSON.stringify(editInProgressFlag)}`);
     return (
         <>
             <Stack direction={'row'} marginTop={2} marginBottom={1}>
-                <Typography variant='subtitle1' marginLeft={15}>{myDate.toDateString()}</Typography>
+                <Typography variant='subtitle1' marginLeft={15} width={130}>{myDate.toDateString()}</Typography>
                 {reportHeaderData.name === "" ? (
                     <TextField
                         label='Enter report name'
@@ -317,14 +341,14 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
                             },
                         }}
                         value={reportHeaderData.name}
-                        sx={{ marginLeft: 12 }}
+                        sx={{ marginLeft: 8, width: 140, textAlign: 'center' }}
                     />
                 )}
-                <Typography variant='subtitle1' marginLeft={12}>${amount?.toFixed(2)}</Typography>
+                <Typography variant='subtitle1' sx={{ marginLeft: 3, width: 50 }}>${amount?.toFixed(2)}</Typography>
                 <Box sx={{
-                    marginLeft: "100px"
+                    marginLeft: "50px"
                 }}>
-                    <Stack display={"block"} spacing={2} direction={"row"}>
+                    <Stack display={"block"} spacing={2} direction={"row"} marginLeft={0}>
                         <Button
                             variant="contained"
                             onClick={handleButtonClicks}
@@ -352,7 +376,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
                     reportInfo?.length ? (
                         <FormControl sx={{
                             marginTop: 2,
-                            marginLeft: 70,
+                            marginLeft: 60,
                             minWidth: 120
                         }}>
                             <InputLabel htmlFor="grouped-native-select">Reports</InputLabel>

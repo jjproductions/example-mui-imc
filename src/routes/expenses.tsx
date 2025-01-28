@@ -11,7 +11,7 @@ import { report } from "process";
 
 const Expenses: React.FC = () => {
     const { userInfo } = useContext(AuthContext);
-    const { newReportItems, ReportSetUp, setCurrReportExpenses } = useAppContext();
+    const { newReportItems, ReportSetUp, setCurrReportExpenses, setCurrReportItemsToDelete } = useAppContext();
     const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);  //used for gridview
     const [loading, setLoading] = useState<boolean>(false);
     const [transMessage, setTransMessage] = useState<string | null>(null);
@@ -57,6 +57,7 @@ const Expenses: React.FC = () => {
     useEffect(() => {
         ReportSetUp(undefined);
         setCurrReportExpenses(undefined);
+        setCurrReportItemsToDelete([]);
         console.log(`expense load: ${newReportItems ? 'true' : 'false'} : ${newReportItems}`);
         const getUsers = async () => {
             try {

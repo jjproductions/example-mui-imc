@@ -62,8 +62,8 @@ export interface appContext {
   activeReportItem: Expense | undefined,
   currReportExpenses: Expense[] | undefined,
   setCurrReportExpenses: (report: Expense[] | undefined) => void,
-  // amountTotal: number,
-  // ReportAmount: (amountChanged: number, amount: number | null) => void,
+  currReportItemsToDelete: number[],
+  setCurrReportItemsToDelete: (items: number[]) => void,
   editInProgress: boolean,
   setEditInProgress: (isEdit: boolean) => void
 }
@@ -83,7 +83,6 @@ export interface ReportHeaderInfo {
   cardNumber?: number;
   canEdit?: boolean;
   editInProgress: boolean;
-  //currExpenses?: Expense[];
 }
 
 export interface StatementUpdate {
@@ -100,5 +99,6 @@ export interface ReportUpdate {
   reportMemo?: string;
   reportName: string;
   reportId?: number;
+  itemsToDelete: number[];
   statements: StatementUpdate[];
 }

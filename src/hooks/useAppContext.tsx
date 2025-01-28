@@ -13,6 +13,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   //const [amountTotal, setAmountTotal] = useState<number>(0); //total amount for current report
   const [currReportExpenses, setCurrReportExpenses] = useState<Expense[] | undefined>(undefined);  //expenses included in current report
   const [editInProgress, setEditInProgress] = useState<boolean>(false); //flag to indicate if an edit is in progress
+  const [currReportItemsToDelete, setCurrReportItemsToDelete] = useState<number[]>([]); //array of rpt ID items to delete
 
   // Function to update the report items
   const ReportSetUp = (report: Expense[] | undefined) => {
@@ -31,8 +32,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     activeReportItem,
     currReportExpenses,
     setCurrReportExpenses,
-    // amountTotal,
-    // ReportAmount,
+    currReportItemsToDelete,
+    setCurrReportItemsToDelete,
     editInProgress,
     setEditInProgress
   }

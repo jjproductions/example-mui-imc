@@ -10,7 +10,7 @@ import { report } from 'process';
 
 
 const ReportDetail = () => {
-    const { currReportExpenses, setCurrReportExpenses } = useAppContext();
+    const { newReportItems, currReportExpenses, setCurrReportExpenses, currReportItemsToDelete, setCurrReportItemsToDelete } = useAppContext();
     const [reportItem, setReportItem] = useState<Expense | null>(null);
     const [reportAmountTotal, setReportAmountTotal] = useState<number>(5);
     const navigate = useNavigate();
@@ -31,6 +31,7 @@ const ReportDetail = () => {
     }
 
 
+    console.log(`ReportDetail: Current Items to Delete - ${JSON.stringify(currReportItemsToDelete)}`);
     //Calculate total amount for report
     useEffect(() => {
         reportAmount = 0;
@@ -53,6 +54,7 @@ const ReportDetail = () => {
             setCurrReportExpenses(currReportExpenses.filter((row) => row.id !== id));
             setReport(undefined);
             console.log(`Delete: ${id} : ${JSON.stringify(currReportExpenses.filter((row) => row.id !== id))}`);
+            !newReportItems && setCurrReportItemsToDelete([...currReportItemsToDelete, id as number]);  // Add to delete list only if it's an existing report
         }
 
     };
@@ -84,10 +86,6 @@ const ReportDetail = () => {
             <DataGrid
                 rows={currReportExpenses}
                 columns={columns}
-                // initialState={{
-                //     pagination: { paginationModel: { pageSize: 3 } },
-                // }}
-                // pageSizeOptions={[3, 7, 10]}
                 autoPageSize
 
                 onRowSelectionModelChange={(select) => {
