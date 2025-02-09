@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('role', '');
         localStorage.setItem('isAdmin', '');
         localStorage.setItem('user', '');
+        localStorage.setItem('tokenCache', '');
     };
 
     const value = {

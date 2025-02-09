@@ -1,6 +1,5 @@
 import { Box, Drawer, Typography, IconButton, Menu, Stack, Button, AppBar, Toolbar } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
-import CatchingPokemonIcon from '@mui/icons-material/CatchingPokemon'
 import { useContext, useEffect, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../hooks/useAuth'
@@ -9,7 +8,6 @@ import { AuthContext } from '../hooks/useAuth'
 export const MuiDrawer = () => {
     const { Logout, userInfo } = useContext(AuthContext);
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-    //const [showAdmin, setShowAdmin] = useState<boolean>(false);
     const navigate = useNavigate();
     const isAdmin = localStorage.getItem('isAdmin') === 'true' ? true : false;
     const token = localStorage.getItem('token');
@@ -72,6 +70,7 @@ export const MuiDrawer = () => {
                                     <Button color='inherit' onClick={() => goTo('expenses')}>Expenses</Button>
                                     <Button color='inherit' onClick={() => goTo('reports')}>Reports</Button>
                                     <Button color='inherit' onClick={() => goTo('logout')}>Logout</Button>
+                                    <Button color='inherit' onClick={() => goTo('test/Test1')}>Test1</Button>
                                 </>
                             ) : (
                                 <Button color='inherit' onClick={() => goTo('login')}>Login</Button>

@@ -11,7 +11,7 @@ import { report } from "process";
 
 const Expenses: React.FC = () => {
     const { userInfo } = useContext(AuthContext);
-    const { newReportItems, ReportSetUp, setCurrReportExpenses, setCurrReportItemsToDelete } = useAppContext();
+    const { newReportItems, ReportSetUp, setCurrReportItemsToDelete } = useAppContext();
     const [tExpenses, setTExpenses] = useState<Expense[] | undefined>(undefined);  //used for gridview
     const [loading, setLoading] = useState<boolean>(false);
     const [transMessage, setTransMessage] = useState<string | null>(null);
@@ -55,8 +55,9 @@ const Expenses: React.FC = () => {
     }
 
     useEffect(() => {
-        ReportSetUp(undefined);
-        setCurrReportExpenses(undefined);
+        ReportSetUp(undefined, "NEWREPORT");
+        ReportSetUp(undefined, "CURRENTREPORT");
+        //setCurrReportExpenses(undefined);
         setCurrReportItemsToDelete([]);
         console.log(`expense load: ${newReportItems ? 'true' : 'false'} : ${newReportItems}`);
         const getUsers = async () => {
@@ -124,7 +125,7 @@ const Expenses: React.FC = () => {
 
     const handleCreateReport = () => {
         console.log("Create Report" + { newReportItems });
-        setCurrReportExpenses(newReportItems);
+        ReportSetUp(newReportItems, "CURRENTREPORT");
         navigate(`../reports`)
     }
 
@@ -150,7 +151,7 @@ const Expenses: React.FC = () => {
         };
     }
 
-    // console.log(`Report visibility: ${!(newReportItems !== undefined && newReportItems.length > 0 ? false : true)}`);
+    console.log(`Report visibility: ${!(newReportItems !== undefined && newReportItems.length > 0 ? false : true)}`);
     return (
         <div style={{ padding: "16px" }}>
             <Box sx={{

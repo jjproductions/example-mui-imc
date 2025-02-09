@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Divider, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, ButtonGroup, Divider, Snackbar, Stack, TextField, Typography, SnackbarCloseReason } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import { useAppContext } from '../../hooks/useAppContext';
 import { useNavigate } from "react-router-dom";
@@ -9,35 +9,55 @@ import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { api_domain } from '../../utilities';
 import axios from 'axios';
-import { Expense, ReportHeaderInfo, ReportInfo, ReportUpdate, StatementUpdate } from '../../types';
+import { alertStatus, Expense, newReportRequest, receiptImageInfo, receiptImageResponse, reportDeleteRequest, ReportHeaderInfo, ReportInfo, ReportUpdate, sasTokenCache, StatementUpdate } from '../../types';
+import { report } from 'process';
 
 
-const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInProgress }) => {
-    const { newReportItems, ReportSetUp, currReportExpenses, setCurrReportExpenses, currReportItemsToDelete, setCurrReportItemsToDelete } = useAppContext();
+const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
+    const { newReportItems,
+        ReportSetUp,
+        currReportExpenses,
+        currReportItemsToDelete,
+        setCurrReportItemsToDelete,
+        editInProgressFlag,
+        setEditInProgressFlag,
+        setReceiptImg,
+        receiptImg,
+        setAlertMsg
+    } = useAppContext();
     const [loading, setLoading] = useState<boolean>(false);
     const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>(); //used for report details
     const [selectedValue, setSelectedValue] = useState<string | undefined>("-1"); //used for report selection
-    const [editInProgressFlag, setEditInProgressFlag] = useState<boolean>(editInProgress); //used to signal if edits are in progress
+    //const [editInProgressFlag, setEditInProgressFlag] = useState<boolean>(true); //used to signal if edits are in progress
     const initialReportName: string = "New Report"; //used for New Report Dropdown name
     const [newReportName, setNewReportName] = useState<string>(""); //used only for new report name
+    const [isAlertOpen, setIsAlertOpen] = useState<alertStatus>({ open: false, message: "", severity: "info" });
     const navigate = useNavigate();
     const myDate = new Date;
     const api_url = `${api_domain}/reports`;
-    const api_url_statements_report = `${api_domain}/statements/report`;
+    const api_url_report_delete = `${api_url}/delete`;
     const api_url_statements = `${api_domain}/statements`;
+    const api_url_statements_report = `${api_url_statements}/report`;
+    const api_url_images = `${api_domain}/images`;
     const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
         "Authorization": auth,
         "Content-Type": 'application/json',
+        "Cache-Control": "no-cache"
     };
-    // let editInProgressFlag: boolean = editInProgress;
+    const userHeadersImages = {
+        "Authorization": auth,
+        "Content-Type": "multipart/form-data",
+        "Cache-Control": "no-cache"
+    };
+
     const initRptHeaderInfo: ReportHeaderInfo = {
         //amount: amount,
         id: -1,
         name: "",
-        cardNumber: amount,
+        cardNumber: localStorage.getItem('userCC') ? parseInt(localStorage.getItem("userCC") as string) : 0,
         canEdit: false,
-        editInProgress: editInProgressFlag
+        editInProgress: true
     }
     //may not need this
     const [reportHeaderData, setReportHeaderData] = useState<ReportHeaderInfo>(initRptHeaderInfo); //used for report header info
@@ -48,7 +68,8 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             console.log(`Setting Header Info:newreportItems ${JSON.stringify(newReportItems)}`);
             setReportHeaderData((currState: ReportHeaderInfo) => ({
                 ...currState,
-                canEdit: true //Need to revisit this for Submitted Reports
+                canEdit: true, //Need to revisit this for Submitted Reports
+                amount: amount
             }));
             console.log(`Setting Header Info: ${JSON.stringify(reportHeaderData)}`);
         }
@@ -62,20 +83,31 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
     const getOpenReports = async (rptId: number | undefined) => {
         try {
             setLoading(true);
-            console.log(`Calling Api: ${api_url}?id=${cardNumber}`);
+            console.log(`Calling Api ${api_url}?id=${cardNumber} for report id: ${rptId}`);
             const response = await axios.get(api_url + "?id=" + cardNumber, {
                 headers: userHeaders
             });
             console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
             setReportInfo(response.data.reports);
-            rptId && setSelectedValue(rptId?.toString());
-            setReportHeaderData((currState: ReportHeaderInfo) => ({
-                ...currState,
-                name: newReportName.trim(),
-                id: rptId,
-                editInProgress: false
-            }));
-            setEditInProgressFlag(rptId === -1 ? true : false)
+            // if no report id arg, then default to new report otherwise set the selected value
+            if (rptId === undefined) {
+                setSelectedValue("-1");
+                setReportHeaderData((currState: ReportHeaderInfo) => ({
+                    ...currState,
+                    editInProgress: true,
+                }));
+                setEditInProgressFlag(true);
+            }
+            else {
+                setSelectedValue(rptId.toString());
+                setReportHeaderData((currState: ReportHeaderInfo) => ({
+                    ...currState,
+                    name: response.data.reports.filter((rpt: any) => rpt.id === rptId)[0].name,
+                    id: rptId,
+                    editInProgress: false
+                }));
+                setEditInProgressFlag(false);
+            }
         }
         catch (error) {
             console.log("Get Open Reports Error");
@@ -88,13 +120,15 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
 
     //Initial call to populate the Reports dropdown
     useEffect(() => {
-        getOpenReports(undefined);
+        console.log(`ReportHeader:initial call: ${cardNumber} :: SelectedValue ${selectedValue} :: EditInProgressFlag ${editInProgressFlag}`);
+        (selectedValue === "-1") && getOpenReports(undefined);
+        setAlertMsg({ open: false, message: "", severity: "info" });
     }, []);
 
-    useEffect(() => {
-        setEditInProgressFlag(editInProgress);
-        console.log(`ReportHeader:EditInProgressFlag: ${editInProgressFlag}`);
-    }, [editInProgress]);
+    // useEffect(() => { //TODO
+    //     setEditInProgressFlag(editInProgress);
+    //     console.log(`ReportHeader:EditInProgressFlag: ${editInProgressFlag} - ReportHeader-EditInProgress: ${reportHeaderData.editInProgress}`);
+    // }, [editInProgress]);
 
     //Get statements for the selected Report
     const GetSelectedReportInfo = async (reportID: number) => {
@@ -105,7 +139,9 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
                 headers: userHeaders
             });
             console.log(`GetSelectedReportInfo call returned: ${JSON.stringify(response.data.expenses)}`);
-            setCurrReportExpenses(response.data.expenses);
+            ReportSetUp(response.data.expenses, "CURRENTREPORT");
+            setEditInProgressFlag(false);
+            ReportSetUp(undefined, "ACTIVEREPORT");
         }
         catch (error) {
             console.log("GetSelectedReportInfo Error");
@@ -115,17 +151,23 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         }
     }
 
-    const handleUpdatingViews = (data: Expense[] | undefined) => {
-        setEditInProgressFlag(false);
-        console.log(`handleUpdatingViews:editInProgressFlag ${JSON.stringify(editInProgressFlag)}`);
-
-    }
+    // should i move this to handleDelete?
+    const InitializeView = (data: Expense[] | undefined, reportType: string) => {
+        if (!data) {
+            ReportSetUp(undefined, reportType);
+            getOpenReports(undefined);
+            setReportHeaderData(initRptHeaderInfo);
+            setNewReportName("");
+            console.log(`handleUpdatingViews:editInProgressFlag ${JSON.stringify(editInProgressFlag)}`);
+        }
+    };
 
     const handleSwitchReports = (event: SelectChangeEvent<string>) => {
         console.log(`Switching Reports:editInProgressFlag ${selectedValue} : ${editInProgressFlag}`);
         var index = (event.target as HTMLSelectElement).selectedIndex;
 
 
+        setAlertMsg({ open: false, message: "", severity: "info" });
         // goin from new report to existing report
         if (selectedValue === "-1" || editInProgressFlag) {
             const userConfirmed = window.confirm("Are you sure you want to switch reports?  You will lose any unsaved changes.");
@@ -137,19 +179,10 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
 
         // goin from existing report to new report
         if (event.target.value === "-1") {
-            handleUpdatingViews(undefined);
+            //handleUpdatingViews(undefined);
             navigate(`../expenses`);
             return;
         }
-
-
-        selectedValue === "-1" && (
-
-            ReportSetUp(undefined)
-
-        )
-
-        setEditInProgressFlag(false);
 
         GetSelectedReportInfo(parseInt(event.target.value));
         setSelectedValue(event.target.value);
@@ -157,19 +190,11 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         setReportHeaderData((currState: ReportHeaderInfo) => ({
             ...currState,
             canEdit: reportInfo && reportInfo[parseInt(event.target.value)]?.status === "SUBMITTED" ? false : true,
-            name: (event.target as HTMLSelectElement)[index].innerText
+            name: (event.target as HTMLSelectElement)[index].innerText,
+            editInProgress: false
         }));
         setCurrReportItemsToDelete([]);
-
-
-        //use report ID to and call the API to get the report details***
-        // console.log(`Report Items: ${JSON.stringify(newReportItems)} : current items - ${JSON.stringify(currReportExpenses)}`);
-        // const selectedReport: Expense[] | undefined = newReportItems?.filter((rpt) => rpt.reportID === parseInt(event.target.value));
-        // console.log(`Selected Report: ${JSON.stringify(selectedReport)}`);
-        // if (selectedReport !== undefined && selectedReport.length > 0)
-        //     handleUpdatingViews(selectedReport)
-        // else
-        //     console.log(`handleSwitchReports returned empty data: ${JSON.stringify(selectedReport)}`);
+        setReceiptImg([]);
     }
 
 
@@ -191,7 +216,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
     const handleCancel = (doNavigate: boolean = true): void => {
         const userConfirmed = doNavigate ? window.confirm("Are you sure you want to cancel?  You will lose any unsaved changes.") : false;
         if (userConfirmed || !doNavigate) {
-            handleUpdatingViews(undefined);
+            //handleUpdatingViews(undefined);
             if (doNavigate) {
                 console.log(`handleCancel: ${doNavigate}`);
                 navigate(`../expenses`)
@@ -199,31 +224,71 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         }
     }
 
-    const handleDelete = () => {
-        const userConfirmed = window.confirm("Are you sure you want to delete this report?");
-        if (userConfirmed) {
-            // Proceed with delete logic
-            console.log("Report deleted");
-            setEditInProgressFlag(false);
-            // alert deleted notification
-            // navigate to expenses
-            // Add your delete logic here
-        } else {
-            console.log("Delete action cancelled");
+    const handleClose = (
+        event?: React.SyntheticEvent | Event,
+        reason?: SnackbarCloseReason,
+    ) => {
+        if (reason === 'clickaway') {
+            return;
+        }
 
+        setIsAlertOpen({ open: false, message: "", severity: "info" });
+    };
+
+    const handleDelete = async () => {
+        if (selectedValue === "-1") {
+            const userConfirmed_NewReport = window.confirm("You will be navigated to Expense view.  Are you sure you want to delete this report?");
+            if (userConfirmed_NewReport) {
+                navigate(`../expenses`);
+            }
+        }
+        else {
+            const userConfirmed = window.confirm("Are you sure you want to delete this report?");
+            if (userConfirmed) {
+                // Proceed with delete logic
+                let itemsToDelete: number[] = [];
+
+                currReportExpenses && currReportExpenses.map((item) => {
+                    itemsToDelete.push(item.id as number);
+                });
+
+                const reportDeleteRequest: reportDeleteRequest = {
+                    reportId: parseInt(selectedValue as string),
+                    itemsToDelete: itemsToDelete
+                }
+
+                try {
+                    setLoading(true);
+                    const response = await axios.post(api_url_report_delete, reportDeleteRequest, {
+                        headers: userHeaders
+                    });
+                    console.log(`handleDelete call returned: ${JSON.stringify(response.data)}`);
+                    // alert deleted notification
+                    setIsAlertOpen({ open: true, message: `Report ${reportHeaderData.name} deleted successfully!`, severity: "success" });
+                    InitializeView(undefined, "CURRENTREPORT")
+                } catch (error) {
+                    console.log(`handleDelete error: ${error}`);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                console.log("Delete action cancelled");
+
+            }
         }
     }
 
     const handleSave = () => {
         console.log(`handleSave: ${selectedValue}`);
-        newReportName.trim() === "" && selectedValue === "-1" ?
-            window.alert("Please enter a report name") :
-            (
-                updateReport()
-            )
+        setAlertMsg({ open: false, message: "", severity: "info" });
+        if (newReportName.trim() === "" && selectedValue === "-1") {
+            setIsAlertOpen({ open: true, message: "Please enter a report name", severity: "error" });
+            //window.alert("Please enter a report name");
+        } else {
+            updateReport();
+        }
         //Report saved alert
     }
-
 
     const createReportDropDown = () => {
         const pendingReports: ReportInfo[] | undefined = reportInfo?.filter((rpt) =>
@@ -265,9 +330,64 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
         setNewReportName(event.target.value);
     }
 
+    //Save the receipt images to Azure
+    const saveReceiptImages = async (imageToUpload: File, rptId: number) => {
+        console.log(`saveReceiptImages: Calling Api: ${api_url_images} for Report id: ${rptId} :: Image count: ${newReportName}`);
+        const formData = new FormData();
+
+        try {
+            //loop through the receipt images and save them***
+            formData.append("request", imageToUpload);
+            const url = `${api_url_images}?rptId=${rptId}`;
+            const response = await axios.post(url, formData, {
+                headers: userHeadersImages
+            });
+            console.log(`saveReceiptImages call returned: ${JSON.stringify(response.data)}`);
+            //setImageUploadInfo(response);
+            setReceiptImg([]);
+            return response.data;
+        } catch (error) {
+            console.log(`saveReceiptImages error: ${error}`);
+            setAlertMsg({ open: true, message: "An error occurred while uploading receipt images. Please try again.", severity: "error" });
+            setIsAlertOpen({ open: true, message: "An error occurred while uploading receipt images. Please try again.", severity: "error" });
+            return "";
+        }
+    }
+
+    const createNewReport = async () => {
+        console.log(`createNewReport: Calling Api: ${api_url} for Report name: ${newReportName} : Card Number: ${reportHeaderData.cardNumber}`);
+        try {
+            const request: newReportRequest = {
+                cardNumber: reportHeaderData.cardNumber as number,
+                name: (newReportName.trim() !== "") ? newReportName : "",
+                memo: ''
+            }
+
+            if (request.name === "" || request.cardNumber === 0) {
+                setAlertMsg({ open: true, message: "Invalid request", severity: "error" });
+                setIsAlertOpen({ open: true, message: "Invalid request", severity: "error" });
+                console.error(`createNewReport: Invalid request failed calling ${api_url} with request ${JSON.stringify(request)}`);
+                return 0;
+            }
+            const response: { data: number } = await axios.post(api_url, request, {
+                headers: userHeaders
+            });
+
+            if (response.data === 0) throw new Error("Create New Report call failed returning 0:  most likely a duplicate report name");
+            console.log(`createNewReport: call succeeded and returned: ${JSON.stringify(response.data)}`);
+            return response.data;
+        } catch (error) {
+            setAlertMsg({ open: true, message: `Error Creating New Report.  ${process.env.REACT_APP_SUPPORT_CONTACT_MSG} \nHint: if this is a new report, use a different name and try again.`, severity: "error" });
+            setIsAlertOpen({ open: true, message: `Error Creating New Report.  ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}`, severity: "error" });
+            console.error(`createNewReport: error: ${error}`);
+            return -1;
+        }
+    }
+
+    //Update the report with the new image URLs
     const updateReport = async () => {
-        console.log(`Calling Api: ${api_url_statements} for Report id: ${selectedValue}`)
-        console.log(`saveNewReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
+        console.log(`updateReport: Calling Api: ${api_url_statements} for Report id: ${selectedValue}`)
+        console.log(`updateReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
         let reportFinal: ReportUpdate = {
             cardNumber: cardNumber as number,
             reportName: selectedValue === "-1" ? (newReportName.trim() === "" ? initialReportName : newReportName) : reportHeaderData.name as string,
@@ -276,51 +396,107 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
             itemsToDelete: currReportItemsToDelete,
             statements: []
         }
-        let updatedStatements: StatementUpdate;
-        currReportExpenses && currReportExpenses.map((item) => {
-            item.reportID = parseInt(selectedValue as string);
-            updatedStatements = {
-                id: item.id as number,
-                reportId: reportFinal.reportId,
-                category: item.category,
-                description: item.description,
-                type: item.type,
-                memo: item.memo
-            }
-            reportFinal.statements.push(updatedStatements);
-        })
 
-        console.log(`saveNewReport: items to delete - ${JSON.stringify(reportFinal)}`);
+        // const imageURI: string = await saveReceiptImages();  //Save receipt images first
+        let updatedStatements: StatementUpdate;
+        let receiptUrl: string | undefined = undefined;
+
+        // Save images and update the report
+        const processExpenses = async (rptId: number) => {
+            console.log(`updateReport: Report Id is ${rptId}`);
+
+            // this is where you will manage user updates to the report ***
+            for (const item of currReportExpenses || []) {
+                const currImage: receiptImageInfo | undefined = receiptImg.find((img) => img.expenseId === item.id);
+                receiptUrl = currImage ? await saveReceiptImages(currImage.image, rptId) : undefined;
+                //if (receiptUrl !== "") {
+                // if receiptUrl is undefined, then use the existing receiptUrl as the receipt is not being updated
+                const tokenKey: string | undefined = receiptUrl ? receiptUrl.split("/").slice(4).join("/").split("?")[0] : undefined;
+                console.log(`updateReport: receipt key: ${tokenKey} for item: ${item.id} :: receipt image store ${receiptImg.length}`);
+                updatedStatements = {
+                    id: item.id as number,
+                    reportId: rptId,
+                    category: item.category,
+                    description: item.description,
+                    type: item.type,
+                    memo: item.memo,
+                    receiptUrl: tokenKey ? tokenKey : item.receiptUrl
+                }
+                console.log(`updateReport: updatedStatements: ${JSON.stringify(updatedStatements)}`);
+                reportFinal.statements.push(updatedStatements);
+                //}
+            }
+        };
+
+        // Creates a new report only if it's a new report
+        const reportId = reportFinal.reportId ? reportFinal.reportId : await createNewReport();
+        if (typeof reportId === 'number' && reportId > 0) {
+            reportFinal.reportId = reportId;
+            await processExpenses(reportId);  // Only if existing or createNewReport succeeded
+        }
+        else {
+            return;
+        }
+
+        console.log(`updateReport: reportFinal - ${JSON.stringify(reportFinal)}`);
         try {
+            // Check if there are any statements to save
+            if (reportFinal.statements.length === 0) {
+                setAlertMsg({ open: true, message: `No receipt images were uploaded. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
+                setIsAlertOpen({ open: true, message: `No receipt images were uploaded. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
+                console.error(`updateReport: No receipt images were uploaded.`);
+                // clean up by deleting report info ***
+                return;
+            }
+
+            console.log(`updateReport: Calling Api: ${api_url_statements} for Report id: ${reportFinal.reportId}`);
             const response = await axios.post(api_url_statements, reportFinal, {
                 headers: userHeaders
             });
-            console.log(`saveNewReport call returned: ${JSON.stringify(response.data)}`);
-            // Call to reset the report dropdown ***
+            console.log(`updateReport: call returned: ${JSON.stringify(response.data)}`);
 
-            if (response.data > 0) {
-                console.log(`saveNewReport calling getOpenReports: `);
-                setCurrReportItemsToDelete([]);
-                if (selectedValue === "-1") {
-                    getOpenReports(response.data); //refresh the report dropdown only if it's a new report                    
-                    ReportSetUp(undefined)
-                }
-                console.log(`saveNewReport header Data: ${JSON.stringify(reportHeaderData)}`);
+            // Check if the report statements were saved
+            if (response.data <= 0) {
+                setAlertMsg({ open: true, message: "An error occurred while saving the report statements. Please try again.", severity: "error" });
+                setIsAlertOpen({ open: true, message: "An error occurred while saving the report statements. Please try again.", severity: "error" });
+                console.log(`updateReport: Error occurred while saving the report.`);
+                // clean up by deleting images & report info ***
+                return;
             }
+
+            setCurrReportItemsToDelete([]);
+            if (selectedValue === "-1") {
+                console.log(`updateReport: calling getOpenReports: `);
+                getOpenReports(response.data); //refresh the report dropdown only if it's a new report
+                ReportSetUp(undefined, "NEWREPORT")
+            }
+
+            GetSelectedReportInfo(response.data); //refresh the report details
+            console.log(`updateReport: header Data: ${JSON.stringify(reportHeaderData)}`); //
+            setIsAlertOpen({ open: true, message: "Report saved successfully!", severity: "success" });
         } catch (error) {
-            console.log(`saveNewReport error: ${error}`);
+            console.log(`updateReport: error: ${error}`);
         } finally {
 
         }
-
-
     }
 
     console.log(`New Report Items: ${JSON.stringify(newReportItems)}`);
-    console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`)
-    console.log(`ReportHeader:EditInProgress ${JSON.stringify(editInProgress)} : ${JSON.stringify(editInProgressFlag)}`);
+    console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`);
+    console.log(`ReportHeader: CURRENTREPORTEXPENSES: ${currReportExpenses} - CANEDIT: ${!reportHeaderData.canEdit}`)
+    console.log(`ReportHeader:EDITINPROGRESSFLAG ${JSON.stringify(editInProgressFlag)}`);
     return (
         <>
+            <Snackbar autoHideDuration={6000} open={isAlertOpen.open} onClose={handleClose}>
+                <Alert
+                    onClose={handleClose}
+                    severity={isAlertOpen.severity}
+                    variant="filled"
+                    sx={{ width: '100%', whiteSpace: "pre-line" }}
+                >
+                    {isAlertOpen.message}
+                </Alert>
+            </Snackbar>
             <Stack direction={'row'} marginTop={2} marginBottom={1}>
                 <Typography variant='subtitle1' marginLeft={15} width={130}>{myDate.toDateString()}</Typography>
                 {reportHeaderData.name === "" ? (
@@ -352,7 +528,8 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber, editInPr
                         <Button
                             variant="contained"
                             onClick={handleButtonClicks}
-                            disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
+                            //disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
+                            disabled={currReportExpenses === undefined || !editInProgressFlag}
                         >
                             Save</Button>
                         <Button

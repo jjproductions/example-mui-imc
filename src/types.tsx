@@ -23,6 +23,7 @@ export interface Expense {
   type: string;
   memo: string;
   reportID: number | null;
+  receiptUrl: string | undefined;
 }
 
 export interface users {
@@ -58,14 +59,17 @@ export interface gridType {
 
 export interface appContext {
   newReportItems: Expense[] | undefined,
-  ReportSetUp: (report: Expense[] | undefined) => void,
+  ReportSetUp: (report: Expense[] | undefined, reportUpdate: string) => void,
   activeReportItem: Expense | undefined,
   currReportExpenses: Expense[] | undefined,
-  setCurrReportExpenses: (report: Expense[] | undefined) => void,
   currReportItemsToDelete: number[],
   setCurrReportItemsToDelete: (items: number[]) => void,
-  editInProgress: boolean,
-  setEditInProgress: (isEdit: boolean) => void
+  editInProgressFlag: boolean,
+  setEditInProgressFlag: (isEdit: boolean) => void,
+  receiptImg: receiptImageInfo[],
+  setReceiptImg: (receiptImages: receiptImageInfo[]) => void
+  alertMsg: alertStatus,
+  setAlertMsg: (alert: alertStatus) => void
 }
 
 export interface ReportInfo {
@@ -92,6 +96,7 @@ export interface StatementUpdate {
   description: string;
   type: string;
   memo?: string;
+  receiptUrl?: string;
 }
 
 export interface ReportUpdate {
@@ -102,3 +107,45 @@ export interface ReportUpdate {
   itemsToDelete: number[];
   statements: StatementUpdate[];
 }
+
+export interface reportDeleteRequest {
+  reportId: number;
+  itemsToDelete: number[];
+}
+
+export interface receiptImageInfo {
+  name: string;
+  image: File;
+  contentType: string;
+  expenseId: number;
+  reportId: number;
+}
+
+export interface receiptImageResponse {
+  expenseId: number;
+  url: string;
+}
+
+export interface alertStatus {
+  open: boolean;
+  message: string;
+  severity: "error" | "info" | "success" | "warning";
+}
+
+export interface newReportRequest {
+  cardNumber: number;
+  name: string;
+  memo: string;
+}
+
+export interface sasTokenRefreshRequest {
+  containerName?: string;
+  blobName: string;
+}
+
+export interface sasTokenCache {
+  token: string;
+  key: string;
+  expiration: string;
+}
+

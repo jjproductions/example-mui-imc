@@ -82,7 +82,8 @@ const Statements: React.FC = () => {
                     type: oData[i].Type,
                     memo: oData[i].Memo,
                     id: null,
-                    reportID: null
+                    reportID: null,
+                    receiptUrl: undefined
                 })
             }
 

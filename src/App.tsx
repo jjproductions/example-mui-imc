@@ -7,7 +7,7 @@ import { MuiTextField } from './components/muitextfield';
 import { MuiSelect } from './components/muiselect';
 import { MuiNavBar } from './components/muiNavbar';
 import { MuiDrawer } from './components/muidrawer';
-import Receipt from './routes/test/receipt'; // Adjust the path as necessary
+
 
 import Expenses from './routes/expenses';
 import Login from './routes/login';
@@ -16,6 +16,7 @@ import Statements from './routes/statements';
 import { BrowserRouter as Router, Routes, Route, RouterProvider, BrowserRouter, createBrowserRouter } from 'react-router-dom';
 import ErrorPage from './error-page';
 import { ProtectedRoute } from './components/protectedRoute';
+import UploadReceipt_Test from './routes/test/test1';
 
 
 
@@ -28,11 +29,7 @@ function App() {
       children: [
         {
           path: '/test/test1',
-          element: <MuiTextField />
-        },
-        {
-          path: '/test/receipt',
-          element: <Receipt />
+          element: <UploadReceipt_Test />
         },
         {
           path: '/login',

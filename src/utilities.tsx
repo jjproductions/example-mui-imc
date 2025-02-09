@@ -1,5 +1,5 @@
 import axios from "axios";
-import { users } from "./types";
+import { sasTokenCache, users } from "./types";
 
 export const api_domain = `${process.env.REACT_APP_DOMAIN}${process.env.REACT_APP_API_VERSION}`;
 //export const Authorization = localStorage ? `Bearer ${localStorage.getItem("token")}` : "";
@@ -7,21 +7,78 @@ export const api_domain = `${process.env.REACT_APP_DOMAIN}${process.env.REACT_AP
 const api_url = `${api_domain}/users?allusers=1`;
 
 const auth = `Bearer ${localStorage.getItem('token')}`;
-    const userHeaders = {
-      "Authorization": auth
-    };
+const userHeaders = {
+    "Authorization": auth
+};
 
 export const getCCUsers = async () => {
-    console.log(`Calling Users Api: ${api_url}`);
+    console.log(`Utilities:getCCUsers: Calling Users Api: ${api_url}`);
 
-    try {    
+    try {
         const response = await axios.get(api_url, {
             headers: userHeaders
         });
-        console.log(`Get CC Users: ${JSON.stringify(response.data.response)}`);
+        console.log(`Utilities:getCCUsers: Get CC Users: ${JSON.stringify(response.data.response)}`);
         return response.data.users;
     } catch (error) {
-        console.error("Error fetching data:", error);  
+        console.error("Utilities:getCCUsers: Error fetching data:", error);
         return null;
-    } 
+    }
 };
+
+export const checkSASExpiration = (sasToken: string) => {
+    try {
+        const urlParams = new URLSearchParams(sasToken.split("?")[1]);
+        const expiry = urlParams.get("se");
+
+        if (!expiry) {
+            console.log("Utilities:checkSASExpiration: Invalid SAS token. Expiry date not found.");
+            return true;
+        }
+
+        const expiryDateTime = new Date(expiry);
+        const now = new Date();
+
+        return (expiryDateTime <= now);
+    } catch (error) {
+        console.error("Utilities:checkSASExpiration: parsing SAS token.");
+        return true;
+    }
+};
+
+// called when a new token is geneated and needs to be cached
+export const tokenCacheUpdate = (sasToken: string) => {
+    let tokenCache: sasTokenCache[] = [localStorage.getItem("tokenCache") ? JSON.parse(localStorage.getItem("tokenCache") as string) : []];
+    const urlParams: URLSearchParams = new URLSearchParams(sasToken.split("?")[1]);
+    const tokenExpiration: string | null = urlParams.get("se");   // get the expiration date from the SAS token);
+    const tokenKey: string | null = sasToken.split("/").slice(4).join("/").split("?")[0];
+    console.log(`Utilities:tokenCacheUpdate:  token - ${sasToken} :: Expiration - ${tokenExpiration} :: Key - ${tokenKey}`);
+    // remove if the token is already in the cache
+    tokenCache = tokenCache.filter((item) => item.key !== tokenKey);
+    if (tokenExpiration && tokenKey) {
+        tokenCache.push({ token: sasToken, expiration: tokenExpiration, key: tokenKey });
+        localStorage.setItem("tokenCache", JSON.stringify(tokenCache));
+        console.log(`Utilities:tokenCacheUpdate:  token - ${JSON.stringify(tokenCache)}}`);
+    }
+}
+
+export const isTokenCached = (sasToken: string) => {
+    try {
+        let tokenCache: sasTokenCache[] = [localStorage.getItem("tokenCache") ? JSON.parse(localStorage.getItem("tokenCache") as string) : []];
+        const cachedToken: sasTokenCache = tokenCache?.filter((item) => item.key === sasToken)[0];
+        console.log(`Utilities:isTokenCached:  token - ${sasToken} :: Cached Token - ${cachedToken?.token}`);
+        if (cachedToken && cachedToken.token !== '') {
+            return (new Date(cachedToken.expiration) <= new Date()) ? undefined : cachedToken.token;
+        }
+        else {
+            console.log(`Utilities:isTokenCached:  token not in cache}`);
+            return undefined;
+        }
+    } catch (error) {
+        console.error("Utilities:isTokenCached: Error checking SAS token.");
+        return undefined;
+    } finally {
+
+    }
+
+}

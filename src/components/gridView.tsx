@@ -31,13 +31,13 @@ export const GridView = ({ config }: { config: gridType }) => {
           checkboxSelection={config.showCheckBox}
           onRowSelectionModelChange={(select) => {
             const selectedIDs = new Set(select);
-            const selectedRows = config?.items?.filter((row: any) =>
+            const selectedRows: Expense[] = config?.items?.filter((row: any) =>
               selectedIDs.has(row.id)
-            );
+            ) as Expense[];
             console.log(`grid select: ${select}`);
             console.log(`grid selection: ${JSON.stringify(selectedRows)}`);
             // setSelectedRows(selectedRows);
-            ReportSetUp(selectedRows);
+            ReportSetUp(selectedRows, "INITIALREPORT");
           }}
           sx={{
             // margin: 5
