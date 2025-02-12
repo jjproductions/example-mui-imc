@@ -78,7 +78,8 @@ const ReportDetail = () => {
         if (currReportExpenses !== undefined) {
             ReportSetUp(currReportExpenses.filter((row) => row.id !== id), "CURRENTREPORT");
             //setReport(undefined);
-            console.log(`Delete: ${id} : ${JSON.stringify(currReportExpenses.filter((row) => row.id !== id))}`);
+            console.log(`handleDeleteClick: Delete: ${id} : ${JSON.stringify(currReportExpenses.filter((row) => row.id !== id))}`);
+            console.log(`handleDeleteClick: Only add to list if not a new report - newReportItems: ${JSON.stringify(newReportItems)}`);
             !newReportItems && setCurrReportItemsToDelete([...currReportItemsToDelete, id as number]);  // Add to delete list only if it's an existing report
             setEditInProgressFlag(true);
         }

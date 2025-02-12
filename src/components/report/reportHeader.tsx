@@ -83,11 +83,11 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     const getOpenReports = async (rptId: number | undefined) => {
         try {
             setLoading(true);
-            console.log(`Calling Api ${api_url}?id=${cardNumber} for report id: ${rptId}`);
+            console.log(`getOpenReports: Calling Api ${api_url}?id=${cardNumber} for report id: ${rptId}`);
             const response = await axios.get(api_url + "?id=" + cardNumber, {
                 headers: userHeaders
             });
-            console.log(`Reports call returned: ${JSON.stringify(response.data.reports)}`);
+            console.log(`getOpenReports: Reports call returned: ${JSON.stringify(response.data.reports)}`);
             setReportInfo(response.data.reports);
             // if no report id arg, then default to new report otherwise set the selected value
             if (rptId === undefined) {
@@ -110,7 +110,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
             }
         }
         catch (error) {
-            console.log("Get Open Reports Error");
+            console.log("getOpenReports: Get Open Reports Error");
         }
         finally {
             setLoading(false);
@@ -195,6 +195,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
         }));
         setCurrReportItemsToDelete([]);
         setReceiptImg([]);
+        ReportSetUp(undefined, "NEWREPORT");
     }
 
 
@@ -450,13 +451,14 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
             }
 
             console.log(`updateReport: Calling Api: ${api_url_statements} for Report id: ${reportFinal.reportId}`);
-            const response = await axios.post(api_url_statements, reportFinal, {
+            // const response = await axios.post(api_url_statements, reportFinal, {
+            const response = await axios.post(api_url_statements + "/update", reportFinal, {
                 headers: userHeaders
             });
             console.log(`updateReport: call returned: ${JSON.stringify(response.data)}`);
 
             // Check if the report statements were saved
-            if (response.data <= 0) {
+            if (response.data.expenses <= 0) {
                 setAlertMsg({ open: true, message: "An error occurred while saving the report statements. Please try again.", severity: "error" });
                 setIsAlertOpen({ open: true, message: "An error occurred while saving the report statements. Please try again.", severity: "error" });
                 console.log(`updateReport: Error occurred while saving the report.`);
@@ -467,17 +469,15 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
             setCurrReportItemsToDelete([]);
             if (selectedValue === "-1") {
                 console.log(`updateReport: calling getOpenReports: `);
-                getOpenReports(response.data); //refresh the report dropdown only if it's a new report
+                getOpenReports(reportId); //refresh the report dropdown only if it's a new report
                 ReportSetUp(undefined, "NEWREPORT")
             }
 
-            GetSelectedReportInfo(response.data); //refresh the report details
+            GetSelectedReportInfo(reportId); //refresh the report details
             console.log(`updateReport: header Data: ${JSON.stringify(reportHeaderData)}`); //
             setIsAlertOpen({ open: true, message: "Report saved successfully!", severity: "success" });
         } catch (error) {
             console.log(`updateReport: error: ${error}`);
-        } finally {
-
         }
     }
 
