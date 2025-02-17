@@ -16,21 +16,37 @@ import Statements from './routes/statements';
 import { BrowserRouter as Router, Routes, Route, RouterProvider, BrowserRouter, createBrowserRouter } from 'react-router-dom';
 import ErrorPage from './error-page';
 import { ProtectedRoute } from './components/protectedRoute';
-import UploadReceipt_Test from './routes/test/test1';
+import { useContext, useEffect } from 'react';
+import { AuthContext } from './hooks/useAuth';
 
 
+function usePreventRefresh(): void {
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "Reloading the browser will log you out!"; // Chrome requires returnValue for custom message
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+};
 
 function App() {
+  usePreventRefresh();
+  const { userInfo } = useContext(AuthContext);
+
+  console.log(`App: userInfo - ${JSON.stringify(userInfo)}`);
   const router = createBrowserRouter([
     {
       path: "/",
       element: <MuiDrawer />,
       errorElement: <ErrorPage />,
       children: [
-        {
-          path: '/test/test1',
-          element: <UploadReceipt_Test />
-        },
+        // {
+        //   path: '/test/test1',
+        //   element: <UploadReceipt_Test />
+        // },
         {
           path: '/login',
           element: <Login />

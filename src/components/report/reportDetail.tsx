@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useAppContext } from '../../hooks/useAppContext';
+import { AuthContext } from '../../hooks/useAuth';
 import { Alert, AlertTitle, Box, Button, Container, Divider, FilledInput, FormControl, InputAdornment, InputLabel, OutlinedInput, Snackbar, SnackbarCloseReason, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowId } from '@mui/x-data-grid';
-import { alertStatus, Expense, gridType, receiptImageInfo, sasTokenRefreshRequest } from "../../types";
+import { alertStatus, Expense, gridType, receiptImageInfo, reportStatus, sasTokenRefreshRequest } from "../../types";
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import ReportHeader from './reportHeader';
 import UploadReceipt from './receipt';
 import ReceiptIcon from '@mui/icons-material/Receipt';
-import { api_domain, isTokenCached, tokenCacheUpdate } from '../../utilities';
+import { api_domain, sasIsTokenCached, sasTokenCacheUpdate } from '../../utilities';
 import axios from "axios";
 import { report } from 'process';
 import { blob } from 'stream/consumers';
+import { userInfo } from 'os';
 
 
 const ReportDetail = () => {
@@ -26,10 +28,10 @@ const ReportDetail = () => {
         activeReportItem,
         setEditInProgressFlag
     } = useAppContext();
+    const { userInfo } = useContext(AuthContext);
     const [reportItem, setReportItem] = useState<Expense | null>(null);
     const [reportAmountTotal, setReportAmountTotal] = useState<number>(5);
     const navigate = useNavigate();
-    const cardNumber: number = localStorage.getItem('userCC') ? parseInt(localStorage.getItem("userCC") as string) : 0;
     const [showAlert, setShowAlert] = useState<boolean>(false);
     const [receipt, setReceipt] = useState<File | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState<alertStatus>({ open: false, message: "", severity: "info" });
@@ -99,7 +101,7 @@ const ReportDetail = () => {
             else {
                 // Check in local storaqge to get full URL with SAS token
                 try {
-                    const cachedToken: string | undefined = isTokenCached(tmpReceipt);
+                    const cachedToken: string | undefined = sasIsTokenCached(tmpReceipt);
                     if (!cachedToken) {  // Has expired and needs to be refreshed
                         const blobName = tmpReceipt;
                         console.log(`handleReceiptClick: ${id as number} :: bloblName: ${JSON.stringify(blobName)}`);
@@ -117,7 +119,7 @@ const ReportDetail = () => {
                         });
                         console.log(`handleReceiptClick:Blob URL with SAS: ${sasToken}`);
                         tmpReceipt = sasToken.data;
-                        tokenCacheUpdate(tmpReceipt as string);   // Update the cache with the refreshed token
+                        sasTokenCacheUpdate(tmpReceipt as string);   // Update the cache with the refreshed token
                     }
                     else { // No need to refresh token
                         tmpReceipt = cachedToken;
@@ -179,7 +181,9 @@ const ReportDetail = () => {
                 rows={currReportExpenses}
                 columns={columns}
                 autoPageSize
-
+                columnVisibilityModel={{
+                    actions: !userInfo?.isAdmin
+                }}
                 onRowSelectionModelChange={(select) => {
                     const selectedIDs = new Set(select);
                     const selectedRows: Expense[] | undefined = currReportExpenses?.filter((row: any) =>
@@ -225,7 +229,7 @@ const ReportDetail = () => {
                     {isAlertOpen.message}
                 </Alert>
             </Snackbar>
-            <ReportHeader amount={reportAmountTotal} cardNumber={cardNumber} editInProgress={false} />
+            <ReportHeader amount={reportAmountTotal} editInProgress={false} status={reportStatus.NEW} />
             <Divider variant='middle' color='secondary' />
             {currReportExpenses ? (
                 <div style={{ marginLeft: 5, width: 1000 }}>

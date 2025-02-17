@@ -8,12 +8,15 @@ import ListSubheader from '@mui/material/ListSubheader';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { api_domain } from '../../utilities';
+import { ReportRequest, reportStatus } from '../../types'; // Ensure this is the correct import for the enum
 import axios from 'axios';
 import { alertStatus, Expense, newReportRequest, receiptImageInfo, receiptImageResponse, reportDeleteRequest, ReportHeaderInfo, ReportInfo, ReportUpdate, sasTokenCache, StatementUpdate } from '../../types';
 import { report } from 'process';
+import { userInfo } from 'os';
+import { ConstructionOutlined } from '@mui/icons-material';
 
 
-const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
+const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
     const { newReportItems,
         ReportSetUp,
         currReportExpenses,
@@ -35,9 +38,10 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     const navigate = useNavigate();
     const myDate = new Date;
     const api_url = `${api_domain}/reports`;
+    const api_url_report_update = `${api_url}/update`;
     const api_url_report_delete = `${api_url}/delete`;
-    const api_url_statements = `${api_domain}/statements`;
-    const api_url_statements_report = `${api_url_statements}/report`;
+    const api_url_statements_update = `${api_domain}/statements/update`;
+    const api_url_statements_report = `${api_domain}/statements/report`;
     const api_url_images = `${api_domain}/images`;
     const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
@@ -56,19 +60,19 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
         id: -1,
         name: "",
         cardNumber: localStorage.getItem('userCC') ? parseInt(localStorage.getItem("userCC") as string) : 0,
-        canEdit: false,
-        editInProgress: true
+        editInProgress: true,
+        status: reportStatus.NEW
     }
     //may not need this
     const [reportHeaderData, setReportHeaderData] = useState<ReportHeaderInfo>(initRptHeaderInfo); //used for report header info
+    let curReportStatus: reportStatus = reportStatus.NEW;
 
     //Sets the Header info once per Report selection
     useEffect(() => {
-        if (cardNumber !== 0) {
+        if (reportHeaderData.cardNumber !== 0) {
             console.log(`Setting Header Info:newreportItems ${JSON.stringify(newReportItems)}`);
             setReportHeaderData((currState: ReportHeaderInfo) => ({
                 ...currState,
-                canEdit: true, //Need to revisit this for Submitted Reports
                 amount: amount
             }));
             console.log(`Setting Header Info: ${JSON.stringify(reportHeaderData)}`);
@@ -83,8 +87,8 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     const getOpenReports = async (rptId: number | undefined) => {
         try {
             setLoading(true);
-            console.log(`getOpenReports: Calling Api ${api_url}?id=${cardNumber} for report id: ${rptId}`);
-            const response = await axios.get(api_url + "?id=" + cardNumber, {
+            console.log(`getOpenReports: Calling Api ${api_url}?id=${reportHeaderData.cardNumber} for report id: ${rptId}`);
+            const response = await axios.get(api_url + "?id=" + reportHeaderData.cardNumber, {
                 headers: userHeaders
             });
             console.log(`getOpenReports: Reports call returned: ${JSON.stringify(response.data.reports)}`);
@@ -95,16 +99,19 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
                 setReportHeaderData((currState: ReportHeaderInfo) => ({
                     ...currState,
                     editInProgress: true,
+                    status: reportStatus.NEW
                 }));
                 setEditInProgressFlag(true);
             }
             else {
                 setSelectedValue(rptId.toString());
+                const selectedReport: ReportInfo = response.data.reports.find((rpt: ReportInfo) => rpt.id === rptId)
                 setReportHeaderData((currState: ReportHeaderInfo) => ({
                     ...currState,
-                    name: response.data.reports.filter((rpt: any) => rpt.id === rptId)[0].name,
+                    name: selectedReport ? selectedReport.name : "",
                     id: rptId,
-                    editInProgress: false
+                    editInProgress: false,
+                    status: (selectedReport?.status as reportStatus) ?? undefined
                 }));
                 setEditInProgressFlag(false);
             }
@@ -120,7 +127,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
 
     //Initial call to populate the Reports dropdown
     useEffect(() => {
-        console.log(`ReportHeader:initial call: ${cardNumber} :: SelectedValue ${selectedValue} :: EditInProgressFlag ${editInProgressFlag}`);
+        console.log(`ReportHeader:initial call: ${reportHeaderData.cardNumber} :: SelectedValue ${selectedValue} :: EditInProgressFlag ${editInProgressFlag}`);
         (selectedValue === "-1") && getOpenReports(undefined);
         setAlertMsg({ open: false, message: "", severity: "info" });
     }, []);
@@ -163,9 +170,9 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     };
 
     const handleSwitchReports = (event: SelectChangeEvent<string>) => {
-        console.log(`Switching Reports:editInProgressFlag ${selectedValue} : ${editInProgressFlag}`);
+        console.log(`handleSwitchReports:editInProgressFlag ${selectedValue} : ${editInProgressFlag}`);
+        console.log(`handleSwitchReports: ${JSON.stringify(reportInfo)}`);  //? reportInfo[parseInt(event.target.value)]?.status : reportStatus.NEW}`);
         var index = (event.target as HTMLSelectElement).selectedIndex;
-
 
         setAlertMsg({ open: false, message: "", severity: "info" });
         // goin from new report to existing report
@@ -186,13 +193,16 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
 
         GetSelectedReportInfo(parseInt(event.target.value));
         setSelectedValue(event.target.value);
-        console.log(`event ID: ${parseInt(event.target.value)} : ${JSON.stringify(selectedValue)} : ${JSON.stringify(editInProgressFlag)}`);
+        if (reportInfo) {
+            console.log('handleSwitchReports: yes');
+        }
         setReportHeaderData((currState: ReportHeaderInfo) => ({
             ...currState,
-            canEdit: reportInfo && reportInfo[parseInt(event.target.value)]?.status === "SUBMITTED" ? false : true,
             name: (event.target as HTMLSelectElement)[index].innerText,
-            editInProgress: false
+            editInProgress: false,
+            status: reportInfo ? reportInfo.find((rpt) => rpt.id === parseInt(event.target.value))?.status as reportStatus : undefined
         }));
+
         setCurrReportItemsToDelete([]);
         setReceiptImg([]);
         ReportSetUp(undefined, "NEWREPORT");
@@ -200,16 +210,33 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
 
 
     const handleButtonClicks = (event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-        console.log(`handleButtonClicks: ${event.currentTarget.textContent}`);
+        console.log(`handleButtonClicks: button selected -  ${event.currentTarget.textContent}`);
         switch (event.currentTarget.textContent) {
-            case "Cancel":
-                handleCancel();
-                break;
             case "Delete":
                 handleDelete();
                 break;
             case "Save":
-                handleSave();
+                setReportHeaderData((currState: ReportHeaderInfo) => ({
+                    ...currState,
+                    status: reportStatus.PENDING as reportStatus
+                }));
+                curReportStatus = reportStatus.PENDING;
+                handleSave(reportStatus.PENDING);
+                break;
+            case "Submit":
+                const userConfirm = window.confirm("Once submitted, the report cannot be edited. Are you sure you want to submit?");
+                if (userConfirm) {
+                    setReportHeaderData((currState: ReportHeaderInfo) => ({
+                        ...currState,
+                        status: reportStatus.SUBMITTED as reportStatus
+                    }));
+                    curReportStatus = reportStatus.SUBMITTED;
+                    handleSave(reportStatus.SUBMITTED);
+                }
+                break;
+            case "Approve":
+                break;
+            case "Return":
                 break;
         }
     }
@@ -279,8 +306,8 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
         }
     }
 
-    const handleSave = () => {
-        console.log(`handleSave: ${selectedValue}`);
+    const handleSave = (rpt_status: reportStatus) => {
+        console.log(`handleSave: ${selectedValue} :: status - ${rpt_status}`);
         setAlertMsg({ open: false, message: "", severity: "info" });
         if (newReportName.trim() === "" && selectedValue === "-1") {
             setIsAlertOpen({ open: true, message: "Please enter a report name", severity: "error" });
@@ -293,14 +320,18 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
 
     const createReportDropDown = () => {
         const pendingReports: ReportInfo[] | undefined = reportInfo?.filter((rpt) =>
-            rpt.status === "PENDING"
+            rpt.status?.toString() === "PENDING"
         );
 
         const returnedReports: ReportInfo[] | undefined = reportInfo?.filter((rpt) =>
-            rpt.status === "RETURNED"
+            rpt.status?.toString() === "RETURNED"
         )
-        // console.log(`Report Info: ${JSON.stringify(reportInfo)}`);
-        console.log(`Returned Reports: ${JSON.stringify(returnedReports)}`);
+        const submittedReports: ReportInfo[] | undefined = reportInfo?.filter((rpt) =>
+            rpt.status?.toString() === "SUBMITTED"
+        )
+
+        //console.log(`Report Info: ${JSON.stringify(reportInfo)}`);
+        console.log(`Submitted Reports: ${JSON.stringify(submittedReports)}`);
         console.log(`Pending Reports: ${JSON.stringify(pendingReports)}`);
         return (
             <>
@@ -317,6 +348,14 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
                 {(pendingReports?.length ?? 0 > 0) ? (
                     <optgroup label="Pending">
                         {pendingReports?.map((rpt) => (
+                            <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
+                        ))
+                        }
+                    </optgroup>
+                ) : <></>}
+                {(submittedReports?.length ?? 0) > 0 ? (
+                    <optgroup label="Submitted">
+                        {submittedReports?.map((rpt) => (
                             <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
                         ))
                         }
@@ -356,12 +395,14 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     }
 
     const createNewReport = async () => {
-        console.log(`createNewReport: Calling Api: ${api_url} for Report name: ${newReportName} : Card Number: ${reportHeaderData.cardNumber}`);
+        const setStatus = reportHeaderData.status && reportHeaderData.status !== reportStatus.NEW ? reportHeaderData.status as reportStatus : reportStatus.PENDING;
+
         try {
             const request: newReportRequest = {
                 cardNumber: reportHeaderData.cardNumber as number,
                 name: (newReportName.trim() !== "") ? newReportName : "",
-                memo: ''
+                memo: `Initial report created: ${new Date().toDateString()}`,
+                status: setStatus
             }
 
             if (request.name === "" || request.cardNumber === 0) {
@@ -370,6 +411,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
                 console.error(`createNewReport: Invalid request failed calling ${api_url} with request ${JSON.stringify(request)}`);
                 return 0;
             }
+            console.log(`createNewReport: Calling Api: ${api_url} for Report name: ${JSON.stringify(request)}`);
             const response: { data: number } = await axios.post(api_url, request, {
                 headers: userHeaders
             });
@@ -385,16 +427,61 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
         }
     }
 
+    const updateExistingReport = async (rptId: number, rptMemo?: string) => {
+        const request: ReportRequest = {
+            reportid: rptId,
+            memo: rptMemo,
+            status: curReportStatus
+        }
+
+        if (rptId === 0) {
+            setAlertMsg({ open: true, message: "Invalid request", severity: "error" });
+            setIsAlertOpen({ open: true, message: "Invalid request", severity: "error" });
+            console.error(`updateExistingReport: Invalid request failed calling ${api_url_report_update}`);
+            return 0;
+        }
+
+        try {
+            console.log(`updateExistingReport: Calling Api: ${api_url_report_update} for Report id: ${rptId}`);
+            const response = await axios.post(api_url_report_update, request, {
+                headers: userHeaders
+            });
+
+            if (response.data === null) throw new Error("Update Existing Report call failed returning 0:  most likely a duplicate report name");
+            console.log(`updateExistingReport: call succeeded and returned: ${JSON.stringify(response.data)}`);
+            // update ReportSetup ***
+            setReportInfo(reportInfo => reportInfo?.map(rpt =>
+                rpt.id === rptId ?
+                    { ...rpt, memo: response.data.memo, status: reportStatus[response.data.status as unknown as keyof typeof reportStatus] } :
+                    rpt
+            ));
+
+
+            //     if (rpt.id === rptId) {
+            //         rpt.status = reportStatus[response.data.status as unknown as keyof typeof reportStatus];
+            //     }
+            //     return rpt;
+            // }));
+            return rptId;
+        } catch (error) {
+            setAlertMsg({ open: true, message: `Error Updating Report.  ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}`, severity: "error" });
+            setIsAlertOpen({ open: true, message: `Error Updating Report.  ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}`, severity: "error" });
+            console.error(`updateExistingReport: error: ${error}`);
+            return -1;
+        }
+    }
+
     //Update the report with the new image URLs
     const updateReport = async () => {
-        console.log(`updateReport: Calling Api: ${api_url_statements} for Report id: ${selectedValue}`)
-        console.log(`updateReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
+        // console.log(`updateReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
+        console.log(`updateReport: REPORT HEADER DATA: ${JSON.stringify(reportHeaderData)}`);
         let reportFinal: ReportUpdate = {
-            cardNumber: cardNumber as number,
+            cardNumber: reportHeaderData.cardNumber as number,
             reportName: selectedValue === "-1" ? (newReportName.trim() === "" ? initialReportName : newReportName) : reportHeaderData.name as string,
             reportId: selectedValue === "-1" ? undefined : parseInt(selectedValue as string),
             reportMemo: '',
             itemsToDelete: currReportItemsToDelete,
+            status: (curReportStatus === reportStatus.NEW || curReportStatus === reportStatus.PENDING) ? undefined : curReportStatus,    //reportHeaderData.status === reportStatus.SUBMITTED ? reportStatus.SUBMITTED : undefined,
             statements: []
         }
 
@@ -429,8 +516,12 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
             }
         };
 
-        // Creates a new report only if it's a new report
-        const reportId = reportFinal.reportId ? reportFinal.reportId : await createNewReport();
+
+        let reportId: number = 0;
+        if (reportFinal.reportId) {   // Updates existing report
+            reportId = await updateExistingReport(reportFinal.reportId, reportFinal.reportMemo);
+        } else await createNewReport();   // Creates a new report only if it's a new report
+
         if (typeof reportId === 'number' && reportId > 0) {
             reportFinal.reportId = reportId;
             await processExpenses(reportId);  // Only if existing or createNewReport succeeded
@@ -443,16 +534,15 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
         try {
             // Check if there are any statements to save
             if (reportFinal.statements.length === 0) {
-                setAlertMsg({ open: true, message: `No receipt images were uploaded. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
-                setIsAlertOpen({ open: true, message: `No receipt images were uploaded. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
-                console.error(`updateReport: No receipt images were uploaded.`);
+                setAlertMsg({ open: true, message: `Invalid report.  Must have at least one expense per report. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
+                setIsAlertOpen({ open: true, message: `Invalid report.  Must have at least one expense per report. ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}.`, severity: "error" });
+                console.error(`updateReport: Invalid report.  Must have at least one expense per report.`);
                 // clean up by deleting report info ***
                 return;
             }
 
-            console.log(`updateReport: Calling Api: ${api_url_statements} for Report id: ${reportFinal.reportId}`);
-            // const response = await axios.post(api_url_statements, reportFinal, {
-            const response = await axios.post(api_url_statements + "/update", reportFinal, {
+            console.log(`updateReport: Calling Api: ${api_url_statements_update} for Report id: ${reportFinal.reportId}`);
+            const response = await axios.post(api_url_statements_update, reportFinal, {
                 headers: userHeaders
             });
             console.log(`updateReport: call returned: ${JSON.stringify(response.data)}`);
@@ -471,9 +561,23 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
                 console.log(`updateReport: calling getOpenReports: `);
                 getOpenReports(reportId); //refresh the report dropdown only if it's a new report
                 ReportSetUp(undefined, "NEWREPORT")
+            } else {
+                curReportStatus === reportStatus.SUBMITTED && getOpenReports(reportId); //refresh the report dropdown if Submitting the report
+                // check if status is different from reportInfo.  if so update the reportInfo
+                console.log(`updateReport: checking if status is different from reportInfo: ${reportInfo?.find((rpt) => rpt.id === reportId)?.status} :: ${reportHeaderData.status}`);
+                if (reportInfo?.find((rpt) => rpt.id === reportId)?.status !== reportHeaderData.status) {
+                    const updatedReportInfo: ReportInfo[] | undefined = reportInfo?.map((rpt) => {
+                        if (rpt.id === reportId) {
+                            rpt.status = reportHeaderData.status as reportStatus;
+                        }
+                        return rpt;
+                    });
+                    setReportInfo(updatedReportInfo);
+                    ReportSetUp(response.data.expenses, "CURRENTREPORT");
+                }
             }
 
-            GetSelectedReportInfo(reportId); //refresh the report details
+            //GetSelectedReportInfo(reportId); //refresh the report details
             console.log(`updateReport: header Data: ${JSON.stringify(reportHeaderData)}`); //
             setIsAlertOpen({ open: true, message: "Report saved successfully!", severity: "success" });
         } catch (error) {
@@ -482,9 +586,11 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
     }
 
     console.log(`New Report Items: ${JSON.stringify(newReportItems)}`);
-    console.log(`ReportHeader: ${(currReportExpenses === undefined || !reportHeaderData.canEdit)}`);
-    console.log(`ReportHeader: CURRENTREPORTEXPENSES: ${currReportExpenses} - CANEDIT: ${!reportHeaderData.canEdit}`)
+    // console.log(`ReportHeader: CURRENTREPORTEXPENSES: ${currReportExpenses}`)
     console.log(`ReportHeader:EDITINPROGRESSFLAG ${JSON.stringify(editInProgressFlag)}`);
+    console.log(`ReportHeader:is submitted status ${reportHeaderData.status && reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED} :: ${reportHeaderData.status}`);
+    console.log(`ReportHeader:is curReportStatus - ${curReportStatus}`);
+    console.log(`ReportHeader: ${typeof reportHeaderData.status} :: ${reportStatus.SUBMITTED}`);
     return (
         <>
             <Snackbar autoHideDuration={6000} open={isAlertOpen.open} onClose={handleClose}>
@@ -497,63 +603,97 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount, cardNumber }) => {
                     {isAlertOpen.message}
                 </Alert>
             </Snackbar>
-            <Stack direction={'row'} marginTop={2} marginBottom={1}>
-                <Typography variant='subtitle1' marginLeft={15} width={130}>{myDate.toDateString()}</Typography>
-                {reportHeaderData.name === "" ? (
-                    <TextField
-                        label='Enter report name'
+
+            {reportHeaderData.name === "" ? (
+                <TextField
+                    label='Enter report name'
+                    variant="outlined"
+                    sx={{ marginLeft: 25, marginTop: 1 }}
+                    value={newReportName}
+                    onChange={handleNewReportNamcChange}
+                />
+            ) : (
+                <TextField
+                    label=' '
+                    variant="standard"
+                    slotProps={{
+                        input: {
+                            disableUnderline: true,
+                        },
+                    }}
+                    value={reportHeaderData.name}
+                    sx={{ marginLeft: 30, width: 140, textAlign: 'center', fontWeight: 'bold', fontSize: 30 }}
+                />
+            )}
+            {(localStorage.getItem('isAdmin') !== "true") ? (
+                <ButtonGroup variant="outlined" color="primary" aria-label="contained primary button group"
+                    sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
+                    <Button
+                        variant='contained'
+                        size='small'
+                        onClick={handleButtonClicks}
+                        disabled={(currReportExpenses === undefined) ||
+                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)
+                        }
+                    >
+                        Submit</Button>
+                    <Button
                         variant="outlined"
-                        sx={{ marginLeft: 4 }}
-                        value={newReportName}
-                        onChange={handleNewReportNamcChange}
-                    />
-                ) : (
-                    <TextField
-                        label=' '
-                        variant="standard"
-                        slotProps={{
-                            input: {
-                                disableUnderline: true,
-                            },
-                        }}
-                        value={reportHeaderData.name}
-                        sx={{ marginLeft: 8, width: 140, textAlign: 'center' }}
-                    />
-                )}
-                <Typography variant='subtitle1' sx={{ marginLeft: 3, width: 50 }}>${amount?.toFixed(2)}</Typography>
-                <Box sx={{
-                    marginLeft: "50px"
-                }}>
-                    <Stack display={"block"} spacing={2} direction={"row"} marginLeft={0}>
-                        <Button
-                            variant="contained"
-                            onClick={handleButtonClicks}
-                            //disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
-                            disabled={currReportExpenses === undefined || !editInProgressFlag}
-                        >
-                            Save</Button>
-                        <Button
-                            variant="outlined"
-                            onClick={handleButtonClicks}
-                            disabled={currReportExpenses === undefined || !reportHeaderData.canEdit}
-                        >
-                            Delete</Button>
-                        <Button
-                            variant='text'
-                            size='small'
-                            onClick={handleButtonClicks}
-                        >
-                            Cancel</Button>
-                    </Stack>
-                </Box>
-            </Stack>
+                        onClick={handleButtonClicks}
+                        disabled={currReportExpenses === undefined ||
+                            !editInProgressFlag ||
+                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
+                        sx={{ marginRight: 1 }}
+                    >
+                        Save</Button>
+                    <Divider color='secondary' orientation='vertical' flexItem />
+                    <Button
+                        variant="text"
+                        size='small'
+                        onClick={handleButtonClicks}
+                        disabled={(currReportExpenses === undefined) ||
+                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
+                        sx={{}}
+                    >
+                        Delete</Button>
+                </ButtonGroup>) : (
+                <ButtonGroup variant='outlined' color='primary' aria-label='contained primary button group'
+                    sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
+                    <Button
+                        variant='contained'
+                        onClick={handleButtonClicks}
+                        sx={{ marginLeft: 40, marginTop: 1 }}>
+                        Approve
+                    </Button>
+                    <Button
+                        variant='contained'
+                        onClick={handleButtonClicks}
+                        sx={{ marginLeft: 40, marginTop: 1 }}>
+                        Return
+                    </Button>
+                </ButtonGroup>
+            )}
+
             <Stack direction={'row'} marginTop={0} marginBottom={1}>
-                <Typography variant='subtitle1' marginLeft={20}>xxx{cardNumber}</Typography>
+                <Typography variant='subtitle1'
+                    sx={{
+                        marginLeft: 10,
+                        width: 130,
+                        display: 'flex',
+                        alignItems: 'flex-end'
+                    }}>{myDate.toDateString()}</Typography>
+                <Typography variant='subtitle1'
+                    sx={{
+                        marginLeft: 25,
+                        width: 50,
+                        display: 'flex',
+                        alignItems: 'flex-end'
+                    }}>${amount?.toFixed(2)}</Typography>
                 {!loading ? (
                     reportInfo?.length ? (
                         <FormControl sx={{
                             marginTop: 2,
-                            marginLeft: 60,
+                            marginLeft: 25,
                             minWidth: 120
                         }}>
                             <InputLabel htmlFor="grouped-native-select">Reports</InputLabel>

@@ -7,9 +7,10 @@ export type LoginType = {
 
 export interface ProviderProps {
   userInfo: UserType | null,
-  token: string | null,
   Login(data: LoginType): Promise<string | null>,
   Logout(): void,
+  creditCard: string | null,
+  setCreditCard: (card: string) => void
 }
 
 export interface Expense {
@@ -75,9 +76,10 @@ export interface appContext {
 export interface ReportInfo {
   id: number;
   name: string;
-  status: string;
+  status: reportStatus;
   created: string;
   modified: string;
+  memo?: string;
 }
 
 export interface ReportHeaderInfo {
@@ -85,8 +87,8 @@ export interface ReportHeaderInfo {
   name?: string;
   amount?: number;
   cardNumber?: number;
-  canEdit?: boolean;
   editInProgress: boolean;
+  status?: reportStatus;
 }
 
 export interface StatementUpdate {
@@ -105,6 +107,7 @@ export interface ReportUpdate {
   reportName: string;
   reportId?: number;
   itemsToDelete: number[];
+  status?: reportStatus;
   statements: StatementUpdate[];
 }
 
@@ -136,6 +139,13 @@ export interface newReportRequest {
   cardNumber: number;
   name: string;
   memo: string;
+  status: reportStatus;
+}
+
+export interface ReportRequest {
+  reportid: number;
+  status: reportStatus;
+  memo?: string;
 }
 
 export interface sasTokenRefreshRequest {
@@ -149,3 +159,11 @@ export interface sasTokenCache {
   expiration: string;
 }
 
+export enum reportStatus {
+  PENDING = 0,
+  SUBMITTED = 1,
+  APPROVED = 2,
+  RETURNED = 3,
+  DELETED = 4,
+  NEW = 5
+}

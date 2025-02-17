@@ -6,7 +6,7 @@ import { styled } from '@mui/material/styles';
 import { AuthContext } from "../hooks/useAuth";
 
 const Statements: React.FC = () => {
-    const { token, userInfo } = useContext(AuthContext);
+    const { userInfo } = useContext(AuthContext);
     const [bankStatment, setBankStatement] = useState<bankExpense[] | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);

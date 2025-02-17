@@ -22,6 +22,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         console.log(`token expired: ${decodedToken.exp}`);
         //localStorage.removeItem('token');
         curToken = "";
+      } else {
+        console.log(`PR: token is expired`)
       }
     } else {
       console.log(`PR: token is null`)
@@ -29,7 +31,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  if (!userInfo?.user || !curToken) {
+  // if (!userInfo?.user || !curToken) {
+  if (!curToken) {
     // user is not authenticated
     console.log("Protected Route: not authenticated")
     Logout();

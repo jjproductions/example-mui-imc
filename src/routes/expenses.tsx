@@ -105,8 +105,6 @@ const Expenses: React.FC = () => {
                     ControlVisibility(transCountMessage);
                     if (response?.data?.expenses?.length > 0) {
                         PopulateData(response.data.expenses);
-                        localStorage.setItem('userCC', response.data.expenses[0].cardNumber);
-                        console.log(`userCC: ${response.data.expenses[0].cardNumber}`);
                     }
                     else
                         PopulateData(undefined);

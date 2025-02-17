@@ -6,23 +6,23 @@ import { AuthContext } from '../hooks/useAuth'
 
 
 export const MuiDrawer = () => {
-    const { Logout, userInfo } = useContext(AuthContext);
+    const { Logout, userInfo, creditCard } = useContext(AuthContext);
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
     const navigate = useNavigate();
-    const isAdmin = localStorage.getItem('isAdmin') === 'true' ? true : false;
+    const isAdmin = userInfo?.isAdmin; //localStorage.getItem('isAdmin') === 'true' ? true : false;
     const token = localStorage.getItem('token');
-
 
     const goTo = (page: string) => {
         setIsDrawerOpen(false);
+        console.log(`MUIDrawer: Navigating to: ${page}`);
         if (page === 'logout')
             Logout();
         else
             navigate(page);
     }
 
-    console.log(`Drawer: admin: ${isAdmin} :: token: ${token}`);
-    console.log(`userinfo: ${JSON.stringify(userInfo)}`);
+    //console.log(`MuiDrawer: card number: ${cardNumber} :: token: ${token}`);
+    console.log(`MuiDrawer: userinfo: ${JSON.stringify(userInfo)}`);
 
     return (
         <>
@@ -47,15 +47,28 @@ export const MuiDrawer = () => {
                     >
                         IMC
                     </Typography>
-                    <Typography variant='h6' component={'div'}
-                        sx={{
-                            //flexGrow: 1,
-                            fontWeight: '800',
-                            float: 'right'
-                        }}
-                    >
-                        {userInfo?.user}
-                    </Typography>
+                    <Stack direction={'column'} spacing={0}>
+                        <Typography variant='h6' component={'div'}
+                            sx={{
+                                //flexGrow: 1,
+                                fontWeight: '800',
+                                float: 'right',
+                                //marginRight: '0px'
+                            }}
+                        >
+                            {userInfo?.user?.split('@')[0]}
+                        </Typography>
+                        <Typography variant='button' component={'div'}
+                            sx={{
+                                //flexGrow: 1,
+                                //fontWeight: '800',
+                                float: 'right',
+                                //marginRight: '-10px'
+                            }}
+                        >
+                            {creditCard}
+                        </Typography>
+                    </Stack>
                 </Toolbar>
             </AppBar>
             <Drawer anchor='left' open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
@@ -70,7 +83,7 @@ export const MuiDrawer = () => {
                                     <Button color='inherit' onClick={() => goTo('expenses')}>Expenses</Button>
                                     <Button color='inherit' onClick={() => goTo('reports')}>Reports</Button>
                                     <Button color='inherit' onClick={() => goTo('logout')}>Logout</Button>
-                                    <Button color='inherit' onClick={() => goTo('test/Test1')}>Test1</Button>
+                                    {/* <Button color='inherit' onClick={() => goTo('test/Test1')}>Test1</Button> */}
                                 </>
                             ) : (
                                 <Button color='inherit' onClick={() => goTo('login')}>Login</Button>

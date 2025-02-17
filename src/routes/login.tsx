@@ -1,14 +1,15 @@
 //Registration
 
 import { Button, FormControl, IconButton, InputAdornment, InputLabel, OutlinedInput, Stack, TextField, Typography } from '@mui/material'
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { AuthContext } from '../hooks/useAuth';
 import { LoginType } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { userInfo } from 'os';
 
 export const Login = () => {
-    const { Login } = useContext(AuthContext);
+    const { Login, userInfo } = useContext(AuthContext);
     const [email, setEmail] = useState<string>('');
     const [pw, setPw] = useState<string>('');
     const emailValidationList = ['@', '.org'];
@@ -16,6 +17,18 @@ export const Login = () => {
     const [validationMessage, setValidationMessage] = useState<string>('');
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = React.useState(false);
+
+    useEffect(() => {
+        // if user is already logged in, redirect to the appropriate page
+        console.log(`Login: userInfo:${JSON.stringify(userInfo)}`);
+        if (userInfo?.user || localStorage.getItem('token')) {
+            console.log(`Login: Navigating to statements`);
+            //navigate('../statements');
+        }
+        (userInfo?.user && localStorage.getItem('token')) &&
+            userInfo?.isAdmin ? console.log(`Login: Navigating to expenses`) : console.log(`Login: Navigating to statements`);
+        //userInfo?.isAdmin ? navigate('../statements') : navigate('../expenses');
+    }, [])
 
     const handleClickShowPassword = () => setShowPassword((show) => !show);
 

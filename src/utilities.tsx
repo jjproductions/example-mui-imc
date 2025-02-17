@@ -47,35 +47,35 @@ export const checkSASExpiration = (sasToken: string) => {
 };
 
 // called when a new token is geneated and needs to be cached
-export const tokenCacheUpdate = (sasToken: string) => {
-    let tokenCache: sasTokenCache[] = [localStorage.getItem("tokenCache") ? JSON.parse(localStorage.getItem("tokenCache") as string) : []];
+export const sasTokenCacheUpdate = (sasToken: string) => {
+    let sasTokenCache: sasTokenCache[] = [localStorage.getItem("sasTokenCache") ? JSON.parse(localStorage.getItem("sasTokenCache") as string) : []];
     const urlParams: URLSearchParams = new URLSearchParams(sasToken.split("?")[1]);
     const tokenExpiration: string | null = urlParams.get("se");   // get the expiration date from the SAS token);
     const tokenKey: string | null = sasToken.split("/").slice(4).join("/").split("?")[0];
-    console.log(`Utilities:tokenCacheUpdate:  token - ${sasToken} :: Expiration - ${tokenExpiration} :: Key - ${tokenKey}`);
+    console.log(`Utilities:sasTokenCacheUpdate:  token - ${sasToken} :: Expiration - ${tokenExpiration} :: Key - ${tokenKey}`);
     // remove if the token is already in the cache
-    tokenCache = tokenCache.filter((item) => item.key !== tokenKey);
+    sasTokenCache = sasTokenCache.filter((item) => item.key !== tokenKey);
     if (tokenExpiration && tokenKey) {
-        tokenCache.push({ token: sasToken, expiration: tokenExpiration, key: tokenKey });
-        localStorage.setItem("tokenCache", JSON.stringify(tokenCache));
-        console.log(`Utilities:tokenCacheUpdate:  token - ${JSON.stringify(tokenCache)}}`);
+        sasTokenCache.push({ token: sasToken, expiration: tokenExpiration, key: tokenKey });
+        localStorage.setItem("sasTokenCache", JSON.stringify(sasTokenCache));
+        console.log(`Utilities:sasTokenCacheUpdate:  token - ${JSON.stringify(sasTokenCache)}}`);
     }
 }
 
-export const isTokenCached = (sasToken: string) => {
+export const sasIsTokenCached = (sasToken: string) => {
     try {
-        let tokenCache: sasTokenCache[] = [localStorage.getItem("tokenCache") ? JSON.parse(localStorage.getItem("tokenCache") as string) : []];
-        const cachedToken: sasTokenCache = tokenCache?.filter((item) => item.key === sasToken)[0];
-        console.log(`Utilities:isTokenCached:  token - ${sasToken} :: Cached Token - ${cachedToken?.token}`);
+        let sasTokenCache: sasTokenCache[] = [localStorage.getItem("sasTokenCache") ? JSON.parse(localStorage.getItem("sasTokenCache") as string) : []];
+        const cachedToken: sasTokenCache = sasTokenCache?.filter((item) => item.key === sasToken)[0];
+        console.log(`Utilities:sasIsTokenCached:  token - ${sasToken} :: Cached Token - ${cachedToken?.token}`);
         if (cachedToken && cachedToken.token !== '') {
             return (new Date(cachedToken.expiration) <= new Date()) ? undefined : cachedToken.token;
         }
         else {
-            console.log(`Utilities:isTokenCached:  token not in cache}`);
+            console.log(`Utilities:sasIsTokenCached:  token not in cache}`);
             return undefined;
         }
     } catch (error) {
-        console.error("Utilities:isTokenCached: Error checking SAS token.");
+        console.error("Utilities:sasIsTokenCached: Error checking SAS token.");
         return undefined;
     } finally {
 
