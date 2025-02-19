@@ -6,18 +6,21 @@ export const api_domain = `${process.env.REACT_APP_DOMAIN}${process.env.REACT_AP
 
 const api_url = `${api_domain}/users?allusers=1`;
 
-const auth = `Bearer ${localStorage.getItem('token')}`;
-const userHeaders = {
-    "Authorization": auth
-};
+const authToken = localStorage.getItem('token');
+
+// Create an Axios instance with default headers
+export const axiosInstance = axios.create({
+    headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+    },
+});
 
 export const getCCUsers = async () => {
     console.log(`Utilities:getCCUsers: Calling Users Api: ${api_url}`);
 
     try {
-        const response = await axios.get(api_url, {
-            headers: userHeaders
-        });
+        const response = await axiosInstance.get(api_url);
         console.log(`Utilities:getCCUsers: Get CC Users: ${JSON.stringify(response.data.response)}`);
         return response.data.users;
     } catch (error) {

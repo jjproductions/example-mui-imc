@@ -625,55 +625,37 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                     sx={{ marginLeft: 30, width: 140, textAlign: 'center', fontWeight: 'bold', fontSize: 30 }}
                 />
             )}
-            {(localStorage.getItem('isAdmin') !== "true") ? (
-                <ButtonGroup variant="outlined" color="primary" aria-label="contained primary button group"
-                    sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
-                    <Button
-                        variant='contained'
-                        size='small'
-                        onClick={handleButtonClicks}
-                        disabled={(currReportExpenses === undefined) ||
-                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)
-                        }
-                    >
-                        Submit</Button>
-                    <Button
-                        variant="outlined"
-                        onClick={handleButtonClicks}
-                        disabled={currReportExpenses === undefined ||
-                            !editInProgressFlag ||
-                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
-                        sx={{ marginRight: 1 }}
-                    >
-                        Save</Button>
-                    <Divider color='secondary' orientation='vertical' flexItem />
-                    <Button
-                        variant="text"
-                        size='small'
-                        onClick={handleButtonClicks}
-                        disabled={(currReportExpenses === undefined) ||
-                            (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
-                        sx={{}}
-                    >
-                        Delete</Button>
-                </ButtonGroup>) : (
-                <ButtonGroup variant='outlined' color='primary' aria-label='contained primary button group'
-                    sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
-                    <Button
-                        variant='contained'
-                        onClick={handleButtonClicks}
-                        sx={{ marginLeft: 40, marginTop: 1 }}>
-                        Approve
-                    </Button>
-                    <Button
-                        variant='contained'
-                        onClick={handleButtonClicks}
-                        sx={{ marginLeft: 40, marginTop: 1 }}>
-                        Return
-                    </Button>
-                </ButtonGroup>
-            )}
-
+            <ButtonGroup variant="outlined" color="primary" aria-label="contained primary button group"
+                sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
+                <Button
+                    variant='contained'
+                    size='small'
+                    onClick={handleButtonClicks}
+                    disabled={(currReportExpenses === undefined) ||
+                        (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)
+                    }
+                >
+                    Submit</Button>
+                <Button
+                    variant="outlined"
+                    onClick={handleButtonClicks}
+                    disabled={currReportExpenses === undefined ||
+                        !editInProgressFlag ||
+                        (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
+                    sx={{ marginRight: 1 }}
+                >
+                    Save</Button>
+                <Divider color='secondary' orientation='vertical' flexItem />
+                <Button
+                    variant="text"
+                    size='small'
+                    onClick={handleButtonClicks}
+                    disabled={(currReportExpenses === undefined) ||
+                        (reportStatus[reportHeaderData.status as unknown as keyof typeof reportStatus] === reportStatus.SUBMITTED)}
+                    sx={{}}
+                >
+                    Delete</Button>
+            </ButtonGroup>
             <Stack direction={'row'} marginTop={0} marginBottom={1}>
                 <Typography variant='subtitle1'
                     sx={{

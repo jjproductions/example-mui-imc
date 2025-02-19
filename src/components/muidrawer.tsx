@@ -24,6 +24,15 @@ export const MuiDrawer = () => {
     //console.log(`MuiDrawer: card number: ${cardNumber} :: token: ${token}`);
     console.log(`MuiDrawer: userinfo: ${JSON.stringify(userInfo)}`);
 
+    const AdminUrls = () => {
+        return (
+            <>
+                <Button color='inherit' onClick={() => goTo('statements')}>Statement</Button>
+                <Button color='inherit' onClick={() => goTo('/admin/reports')}>Admin Reports</Button>
+            </>
+        )
+    }
+
     return (
         <>
             <AppBar position='static'>
@@ -77,11 +86,11 @@ export const MuiDrawer = () => {
                         <Stack direction={'column'} spacing={2}>
                             {token ? (
                                 <>
-                                    {isAdmin &&
-                                        (<Button color='inherit' onClick={() => goTo('statements')}>Statement</Button>)
+                                    {isAdmin ?
+                                        <AdminUrls /> :
+                                        <Button color='inherit' onClick={() => goTo('reports')}>Reports</Button>
                                     }
                                     <Button color='inherit' onClick={() => goTo('expenses')}>Expenses</Button>
-                                    <Button color='inherit' onClick={() => goTo('reports')}>Reports</Button>
                                     <Button color='inherit' onClick={() => goTo('logout')}>Logout</Button>
                                     {/* <Button color='inherit' onClick={() => goTo('test/Test1')}>Test1</Button> */}
                                 </>

@@ -20,6 +20,7 @@ const Expenses: React.FC = () => {
     const navigate = useNavigate();
     const loggedInUser: UserType | null = userInfo;
     let api_url = `${api_domain}/statements`;
+    const api_url_users = `${api_domain}/users?allusers=1`;
     let gridConfig: gridType = { items: tExpenses, showCheckBox: !userInfo?.isAdmin };
 
     //console.log(`userInfo: user:${userInfo?.user} role:${userInfo?.role} Admin:${userInfo?.isAdmin}`);
@@ -59,18 +60,22 @@ const Expenses: React.FC = () => {
         ReportSetUp(undefined, "CURRENTREPORT");
         //setCurrReportExpenses(undefined);
         setCurrReportItemsToDelete([]);
-        console.log(`expense load: ${newReportItems ? 'true' : 'false'} : ${newReportItems}`);
+        console.log(`expenses: load: users - ${JSON.stringify(users)} :: is Admin ${userInfo?.isAdmin}`);
         const getUsers = async () => {
             try {
+                console.log(`getUsers: userInfo: ${userInfo?.isAdmin}`);
                 if (userInfo?.isAdmin && (users == null || users.length === 0)) {
                     // Get all CC Users
-                    const response: users[] = await getCCUsers();
-                    console.log(`getUsers first response: ${response.length}`);
-                    if (response && response.length > 1) {
-                        setUsers(response);
+                    console.log(`getUsers: Calling Api: ${api_url_users}`);
+                    const response = await axios.get(api_url_users, {
+                        headers: userHeaders
+                    });
+                    console.log(`getUsers: users: ${response.data.users}`);
+                    if (response && response.data.users.length > 1) {
+                        setUsers(response.data.users);
                     }
                     else
-                        console.log("NO DATA");
+                        console.log("getUsers: NO DATA");
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -79,6 +84,7 @@ const Expenses: React.FC = () => {
                 setLoading(false);
             }
         };
+        console.log(`getUsers: selected: ${selected}`);
         getUsers();
     }, [selected]);
 

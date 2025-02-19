@@ -80,6 +80,7 @@ export interface ReportInfo {
   created: string;
   modified: string;
   memo?: string;
+  cardNumber?: number;
 }
 
 export interface ReportHeaderInfo {
