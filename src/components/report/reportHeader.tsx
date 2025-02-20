@@ -203,6 +203,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
             status: reportInfo ? reportInfo.find((rpt) => rpt.id === parseInt(event.target.value))?.status as reportStatus : undefined
         }));
 
+        localStorage.setItem("status", reportInfo ? reportInfo.find((rpt) => rpt.id === parseInt(event.target.value))?.status.toString() as string : "");
         setCurrReportItemsToDelete([]);
         setReceiptImg([]);
         ReportSetUp(undefined, "NEWREPORT");
@@ -233,10 +234,6 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                     curReportStatus = reportStatus.SUBMITTED;
                     handleSave(reportStatus.SUBMITTED);
                 }
-                break;
-            case "Approve":
-                break;
-            case "Return":
                 break;
         }
     }
@@ -307,7 +304,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
     }
 
     const handleSave = (rpt_status: reportStatus) => {
-        console.log(`handleSave: ${selectedValue} :: status - ${rpt_status}`);
+        console.log(`handleSave: selected value=${selectedValue} :: status - ${rpt_status}`);
         setAlertMsg({ open: false, message: "", severity: "info" });
         if (newReportName.trim() === "" && selectedValue === "-1") {
             setIsAlertOpen({ open: true, message: "Please enter a report name", severity: "error" });
@@ -393,6 +390,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
     }
 
     const createNewReport = async () => {
+        console.log(`createNewReport: Report Header Data: ${JSON.stringify(reportHeaderData)}`);
         const setStatus = reportHeaderData.status && reportHeaderData.status !== reportStatus.NEW ? reportHeaderData.status as reportStatus : reportStatus.PENDING;
 
         try {
@@ -400,7 +398,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                 cardNumber: reportHeaderData.cardNumber as number,
                 name: (newReportName.trim() !== "") ? newReportName : "",
                 memo: `Initial report created: ${new Date().toDateString()}`,
-                status: setStatus
+                status: curReportStatus
             }
 
             if (request.name === "" || request.cardNumber === 0) {
@@ -473,6 +471,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
     const updateReport = async () => {
         // console.log(`updateReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
         console.log(`updateReport: REPORT HEADER DATA: ${JSON.stringify(reportHeaderData)}`);
+        console.log(`updateReport: curReportStatus: ${JSON.stringify((curReportStatus === reportStatus.NEW || curReportStatus === reportStatus.PENDING) ? undefined : curReportStatus)}`);
         let reportFinal: ReportUpdate = {
             cardNumber: reportHeaderData.cardNumber as number,
             reportName: selectedValue === "-1" ? (newReportName.trim() === "" ? initialReportName : newReportName) : reportHeaderData.name as string,
@@ -489,7 +488,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
 
         // Save images and update the report
         const processExpenses = async (rptId: number) => {
-            console.log(`updateReport: Report Id is ${rptId}`);
+            console.log(`processExpenses: Report Id is ${rptId}`);
 
             // this is where you will manage user updates to the report ***
             for (const item of currReportExpenses || []) {
@@ -498,7 +497,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                 //if (receiptUrl !== "") {
                 // if receiptUrl is undefined, then use the existing receiptUrl as the receipt is not being updated
                 const tokenKey: string | undefined = receiptUrl ? receiptUrl.split("/").slice(4).join("/").split("?")[0] : undefined;
-                console.log(`updateReport: receipt key: ${tokenKey} for item: ${item.id} :: receipt image store ${receiptImg.length}`);
+                console.log(`processExpenses: receipt key: ${tokenKey} for item: ${item.id} :: receipt image store ${receiptImg.length}`);
                 updatedStatements = {
                     id: item.id as number,
                     reportId: rptId,
@@ -508,7 +507,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                     memo: item.memo,
                     receiptUrl: tokenKey ? tokenKey : item.receiptUrl
                 }
-                console.log(`updateReport: updatedStatements: ${JSON.stringify(updatedStatements)}`);
+                console.log(`processExpenses: updatedStatements: ${JSON.stringify(updatedStatements)}`);
                 reportFinal.statements.push(updatedStatements);
                 //}
             }
@@ -518,13 +517,14 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
         let reportId: number = 0;
         if (reportFinal.reportId) {   // Updates existing report
             reportId = await updateExistingReport(reportFinal.reportId, reportFinal.reportMemo);
-        } else await createNewReport();   // Creates a new report only if it's a new report
+        } else reportId = await createNewReport();   // Creates a new report only if it's a new report
 
         if (typeof reportId === 'number' && reportId > 0) {
             reportFinal.reportId = reportId;
             await processExpenses(reportId);  // Only if existing or createNewReport succeeded
         }
         else {
+            console.log(`updateReport: Error occurred while creating new report.`);
             return;
         }
 
@@ -674,7 +674,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                                 value={selectedValue}
                                 onChange={handleSwitchReports}
                             >
-                                <option aria-label="None" value="-1" key={-1}>{selectedValue === "-1" ? initialReportName : "Add New Expense"}</option>
+                                <option aria-label="None" value="-1" key={-1}>{selectedValue === "-1" ? initialReportName : "New Expense"}</option>
                                 {createReportDropDown()};
                             </Select>
                         </FormControl>

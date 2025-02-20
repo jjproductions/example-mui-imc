@@ -176,13 +176,15 @@ const ReportDetail = () => {
     console.log(`selected Item: ${currReportExpenses?.length} ${JSON.stringify(currReportExpenses)}`);
 
     const createGrid = () => {
+        console.log(`CreateGrid: ${JSON.stringify(!userInfo?.isAdmin || (localStorage.getItem('status') === reportStatus[reportStatus.SUBMITTED] ? false : true))}`);
+        console.log(`CreateGrid: status:${JSON.stringify(localStorage.getItem('status') === reportStatus[reportStatus.SUBMITTED])}`);
         return (
             <DataGrid
                 rows={currReportExpenses}
                 columns={columns}
                 autoPageSize
                 columnVisibilityModel={{
-                    actions: !userInfo?.isAdmin
+                    actions: !userInfo?.isAdmin && (localStorage.getItem('status') === reportStatus[reportStatus.SUBMITTED] ? false : true),
                 }}
                 onRowSelectionModelChange={(select) => {
                     const selectedIDs = new Set(select);
@@ -233,7 +235,7 @@ const ReportDetail = () => {
             <Divider variant='middle' color='secondary' />
             {currReportExpenses ? (
                 <div style={{ marginLeft: 5, width: 1000 }}>
-                    {activeReportItem && activeReportItem.id !== 0 ? (
+                    {localStorage.getItem('status') !== reportStatus[reportStatus.SUBMITTED] && (activeReportItem && activeReportItem.id !== 0) ? (
                         <Box sx={{ float: 'right', marginRight: 5, width: 230 }}>
                             <UploadReceipt />
                         </Box>

@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('userCC', '');
         localStorage.setItem('sasTokenCache', '');
         localStorage.setItem('user', '');
+        localStorage.setItem('status', '');
         setCreditCard(null);
     };
 
