@@ -335,17 +335,15 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
         console.log(`Pending Reports: ${JSON.stringify(pendingReports)}`);
         return (
             <>
-                {(returnedReports?.length ?? 0) > 0 ? (
-                    <>
-                        <optgroup label="Returned">
-                            {returnedReports?.map((rpt) => (
-                                <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
-                            ))}
-                        </optgroup>
-                    </>
+                {returnedReports?.length ? (
+                    <optgroup label="Returned">
+                        {returnedReports?.map((rpt) => (
+                            <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
+                        ))}
+                    </optgroup>
                 ) : <></>}
 
-                {(pendingReports?.length ?? 0 > 0) ? (
+                {pendingReports?.length ? (
                     <optgroup label="Pending">
                         {pendingReports?.map((rpt) => (
                             <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
@@ -353,7 +351,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                         }
                     </optgroup>
                 ) : <></>}
-                {(submittedReports?.length ?? 0) > 0 ? (
+                {submittedReports?.length ? (
                     <optgroup label="Submitted">
                         {submittedReports?.map((rpt) => (
                             <option key={rpt.id} value={rpt.id}>{rpt.name}</option>
@@ -613,20 +611,10 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                     onChange={handleNewReportNamcChange}
                 />
             ) : (
-                <TextField
-                    label=' '
-                    variant="standard"
-                    slotProps={{
-                        input: {
-                            disableUnderline: true,
-                        },
-                    }}
-                    value={reportHeaderData.name}
-                    sx={{ marginLeft: 30, width: 140, textAlign: 'center', fontWeight: 'bold', fontSize: 30 }}
-                />
+                <Typography variant='h6' component={'span'} sx={{ marginLeft: 30, marginTop: 1, width: 30 }}>{reportHeaderData.name}</Typography>
             )}
             <ButtonGroup variant="outlined" color="primary" aria-label="contained primary button group"
-                sx={{ marginLeft: 40, gap: 1, marginTop: .3 }}>
+                sx={{ marginLeft: 40, gap: 1, marginTop: .3, minWidth: 250 }}>
                 <Button
                     variant='contained'
                     size='small'

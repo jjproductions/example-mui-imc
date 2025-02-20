@@ -6,24 +6,28 @@ import React, { PureComponent, useEffect, useState } from 'react'
 import { useAppContext } from '../../hooks/useAppContext'
 import { api_domain } from '../../utilities';
 import axios from 'axios';
-import { alertStatus, Expense, ReportInfo } from '../../types';
+import { alertStatus, Expense, ReportInfo, ReportRequest, reportStatus } from '../../types';
 import { report } from 'process';
 import { ButtonGraphic } from '../custom/graphicbutton';
-import { ExpandMore } from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { ViewImageSelection } from '../report/imageViewer';
+import Slider from 'react-slick';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 
 const AdminReports = () => {
     const api_url = `${api_domain}/reports/admin`;
-    const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>(undefined);
+    const [reportInfo, setReportInfo] = useState<ReportInfo[] | undefined>(undefined); // holds report information
     const [cardArray, setCardArray] = useState<number[]>([]);
     const [cardCount, setCardCount] = useState<[string, number][]>([]);
-    const [selectedCardExpenses, setSelectedCardExpenses] = useState<Expense[] | undefined>(undefined);
-    const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
+    const [selectedCardExpenses, setSelectedCardExpenses] = useState<Expense[] | undefined>(undefined); // holds expenses for a selected report
     const [isAlertOpen, setIsAlertOpen] = useState<alertStatus>({ open: false, message: "", severity: "info" });
     const [showExpenseGrid, setShowExpenseGrid] = useState<boolean>(false);
-    const api_url_statements_report = `${api_domain}/statements/report`;
     const [expanded, setExpanded] = useState<boolean>(false);
-    const [selectedCard, setSelectedCard] = useState<number>(0);
+    const [selectedCard, setSelectedCard] = useState<number>(0); // the card number selected
+    const api_url_statements_report = `${api_domain}/statements/report`;
+    const api_url_reports_update = `${api_domain}/reports/update`;
     const auth = `Bearer ${localStorage.getItem('token')}`;
     const userHeaders = {
         "Authorization": auth,
@@ -61,12 +65,70 @@ const AdminReports = () => {
 
     const hideGrid = () => {
         setShowExpenseGrid(false);
-        setSelectedExpense(undefined);
+        setSelectedCardExpenses(undefined);
     }
 
     const handleButtonClicks = async (event: React.MouseEvent<HTMLButtonElement>) => {
-        const action = Number(event.currentTarget.textContent);
+        const action = event.currentTarget.textContent;
         console.log(`handleButtonClicks: ${action} selected`);
+        let selection: reportStatus = reportStatus.RETURNED;
+        try {
+            switch (action) {
+                case "Approve":
+                    selection = reportStatus.APPROVED;
+                    break;
+                case "Return":
+                    selection = reportStatus.RETURNED
+                    break;
+                default:
+                    break;
+            }
+
+            if (selectedCardExpenses) {
+                const rptInfo: ReportInfo | undefined = reportInfo?.find((report: ReportInfo) => report.id === selectedCardExpenses[0].reportID);
+                const request: ReportRequest = {
+                    "reportid": rptInfo?.id as number,
+                    "status": selection,
+                    "memo": rptInfo?.memo
+                };
+                console.log(`handleButtonClicks: Call api ${api_url_reports_update} for reportId`);
+                const response = await axios.post(api_url_reports_update, request, {
+                    headers: userHeaders
+                });
+                if (response.data !== null) {
+                    console.log(`handleButtonClicks: ${action} selected returned: ${JSON.stringify(response.data)}`);
+                    setReportInfo((prevReportInfo) => {
+                        return prevReportInfo?.filter((report: ReportInfo) =>
+                            report.id !== rptInfo?.id
+                        );
+                    });
+                    // Update the card count - remove the card if there is only one report
+                    if (cardCount.find((count) => count[0] === rptInfo?.cardNumber?.toString())?.[1] === 1) {
+                        setCardCount((prevCardCount) => {
+                            return prevCardCount.filter((count) => count[0] !== rptInfo?.cardNumber?.toString());
+                        });
+                        setCardArray((prevCardArray) => {
+                            return prevCardArray.filter((card) => card !== rptInfo?.cardNumber);
+                        });
+                    } else {// decrement the count
+                        setCardCount((prevCardCount) => {
+                            return prevCardCount.map((count) => {
+                                if (count[0] === rptInfo?.cardNumber?.toString()) {
+                                    return [count[0], count[1] - 1];
+                                }
+                                return count;
+                            });
+                        });
+                    }
+                    setIsAlertOpen({ open: true, message: `Expense successfully ${action}`, severity: "success" });
+                } else {
+                    setIsAlertOpen({ open: true, message: "Error processing request", severity: "error" });
+                }
+            }
+        } catch (error) {
+            console.error(`Error processnig request to ${action} the report`, error);
+            setIsAlertOpen({ open: true, message: `Error processing request to ${action} the report`, severity: "error" });
+        }
         hideGrid();
     }
 
@@ -108,57 +170,66 @@ const AdminReports = () => {
 
     const createCardReports = () => {
         console.log(`AdminReports:createCardReports: card array ${JSON.stringify(cardArray)}`);
+        const settings = {
+            dots: true,
+            infinite: false,
+            speed: 500,
+            slidesToShow: 3,
+            slidesToScroll: 2
+        };
         return (
-            <>
-                {cardArray.map((card) => (
-                    console.log(`createCardReports: card count: ${JSON.stringify(cardCount)}`),
-                    <Card
-                        key={card}
-                        sx={{ minWidth: 175 }}
-                    >
-                        <CardContent>
-                            <Typography variant="h5" component="div">
-                                {card}
-                            </Typography>
-                            <Typography variant="body2">
-                                You have {cardCount.find((count) => count[0] === card.toString())?.[1]} reports to review.
-                            </Typography>
-                            {/*  */}
-                        </CardContent>
-                        <CardActions>
-                            <ExpandMoreSection
-                                onClick={() => handleExpandClick(card)}
-                                aria-expanded={handleExpandState(card)}
-                                aria-label="show more"
-                                expand={handleExpandState(card)}
-                                sx={{
-                                    transform: handleExpandState(card) ? "rotate(180deg)" : "rotate(0deg)",
-                                    transition: (theme) =>
-                                        theme.transitions.create("transform", {
-                                            duration: theme.transitions.duration.shortest,
-                                        }),
-                                }}
-                            >
-                                <ExpandMore />
-                            </ExpandMoreSection>
-                        </CardActions>
-                        <Collapse in={handleExpandState(card)} timeout="auto" unmountOnExit>
+            <div style={{ width: "75%", margin: "0 auto" }}>
+                <Slider {...settings}>
+                    {cardArray.map((card) => (
+                        console.log(`createCardReports: card count: ${JSON.stringify(cardCount)}`),
+                        <Card
+                            key={card}
+                            sx={{ minWidth: 175 }}
+                        >
                             <CardContent>
-                                {reportInfo?.filter((reports: ReportInfo) => reports.cardNumber === card).map((report: ReportInfo) => (
-                                    <ButtonGraphic
-                                        text={report.name}
-                                        onClick={() => handleReportClick(report.id)}
-                                        key={report.id}
-                                    />
-                                ))}
+                                <Typography variant="h5" component="div">
+                                    {card}
+                                </Typography>
+                                <Typography variant="body2">
+                                    You have {cardCount.find((count) => count[0] === card.toString())?.[1]} reports to review.
+                                </Typography>
+                                {/*  */}
                             </CardContent>
-                        </Collapse>
-                    </Card>
-                ))}
-            </>
+                            <CardActions>
+                                <ExpandMoreSection
+                                    onClick={() => handleExpandClick(card)}
+                                    aria-expanded={handleExpandState(card)}
+                                    aria-label="show more"
+                                    expand={handleExpandState(card)}
+                                    sx={{
+                                        transform: handleExpandState(card) ? "rotate(180deg)" : "rotate(0deg)",
+                                        transition: (theme) =>
+                                            theme.transitions.create("transform", {
+                                                duration: theme.transitions.duration.shortest,
+                                            }),
+                                    }}
+                                >
+                                    <ExpandMoreIcon />
+                                </ExpandMoreSection>
+                            </CardActions>
+                            <Collapse in={handleExpandState(card)} timeout="auto" unmountOnExit>
+                                <CardContent>
+                                    {reportInfo?.filter((reports: ReportInfo) => reports.cardNumber === card).map((report: ReportInfo) => (
+                                        <ButtonGraphic
+                                            text={report.name}
+                                            onClick={() => handleReportClick(report.id)}
+                                            key={report.id}
+                                        />
+                                    ))}
+                                </CardContent>
+                            </Collapse>
+                        </Card>
+                    ))}
+                </Slider>
+            </div>
         )
     }
-
+    // This function will expand the card to show the reports associated with that card.
     const handleExpandClick = (card: number) => {
         console.log(`AdminReports: handleExpandClick: ${expanded}`);
         setExpanded(selectedCard === card ? !expanded : true);
@@ -167,17 +238,17 @@ const AdminReports = () => {
         console.log(`AdminReports: handleExpandClick: ${JSON.stringify(rptInfo)}`);
 
     };
-
-    const handleReportClick = async (card: number) => {
-        console.log(`AdminReports: handleCardClick: ${card}`);
+    // Selecting a report will display the expenses associated with that report.
+    const handleReportClick = async (rptId: number) => {
+        console.log(`AdminReports: handleReportClick: ${rptId}`);
         try {
-            console.log(`Calling Api: ${api_url_statements_report}?id=${card}`);
-            const response = await axios.get(api_url_statements_report + "?id=" + card, {
+            console.log(`AdminReports: handleReportClick: Calling Api: ${api_url_statements_report}?id=${rptId}`);
+            const response = await axios.get(api_url_statements_report + "?id=" + rptId, {
                 headers: userHeaders
             });
             if (response.data.expenses !== null) {
                 //const selectedCardExpenses: Expense[] | undefined = response.data.expenses?.filter((expense: Expense) => expense.cardNumber === card);
-                console.log(`AdminReports: handleButtonClicks: ${JSON.stringify(response.data.expenses)}`);
+                console.log(`AdminReports: handleReportClick: ${JSON.stringify(response.data.expenses)}`);
                 setSelectedCardExpenses(response.data.expenses);
                 setShowExpenseGrid(true);
             }
@@ -204,23 +275,26 @@ const AdminReports = () => {
 
     const columns: GridColDef[] = [
         { field: 'id', headerName: 'Id', width: 60 },
-        // {
-        //     field: 'receiptImg', type: 'actions', headerName: '', width: 50,
-        //     getActions: ({ id }: ColumnActions) => {
-        //         const receiptUrl = selectedCardExpenses?.find((row) => row.id === id)?.receiptUrl;
-        //         return receiptUrl ? [
-        //             <GridActionsCellItem
-        //                 icon={<ReceiptIcon />}
-        //                 label="Receipt"
-        //                 onClick={handleReceiptClick(id)}
-        //                 color="inherit"
-        //             />
-        //         ] : [];
-        //     },
-        // },
+        {
+            field: 'receiptImg', type: 'actions', headerName: '', width: 50,
+            getActions: ({ id }: ColumnActions) => {
+                const receiptUrl = selectedCardExpenses?.find((row) => row.id === id)?.receiptUrl;
+                return receiptUrl ? [
+                    <GridActionsCellItem
+                        icon={<ReceiptIcon />}
+                        label="Receipt"
+                        onClick={ViewImageSelection(id, selectedCardExpenses)}
+                        color="inherit"
+                    />
+                ] : [];
+            },
+        },
         { field: 'transactionDate', headerName: 'Transaction Date', width: 150 },
         { field: 'amount', headerName: 'Amount', width: 100 },
-        { field: 'description', headerName: 'Description', width: 240 }
+        { field: 'description', headerName: 'Description', width: 240 },
+        { field: 'category', headerName: 'Category', width: 180 },
+        { field: 'type', headerName: 'Type', width: 100 },
+        { field: 'memo', headerName: 'Memo', width: 240 }
     ]
 
     const createExpensesGrid = () => {
@@ -229,17 +303,10 @@ const AdminReports = () => {
                 rows={selectedCardExpenses}
                 columns={columns}
                 autoPageSize
-                onRowSelectionModelChange={(select) => {
-                    const selectedIDs = new Set(select);
-                    const selectedRows: Expense[] | undefined = selectedCardExpenses?.filter((row: any) =>
-                        selectedIDs.has(row.id)
-                    );
-                    (selectedRows != undefined && selectedRows.length > 0) && setSelectedExpense(selectedRows[0]);
-                }}
             />
         )
     }
-
+    console.log(`AdminReports: Name - ${JSON.stringify(reportInfo?.find((report: ReportInfo) => report?.id === selectedCardExpenses?.[0].reportID)?.name)}`);
     return (
         <div>
             <Snackbar autoHideDuration={6000} open={isAlertOpen.open} onClose={handleClose}>
@@ -252,8 +319,9 @@ const AdminReports = () => {
                     {isAlertOpen.message}
                 </Alert>
             </Snackbar>
+
             <ButtonGroup variant='outlined' color='primary' aria-label='contained primary button group'
-                sx={{ marginLeft: 50, gap: 1, marginTop: 0 }}>
+                sx={{ marginRight: 5, gap: 1, marginTop: -1, width: 500, float: 'right' }}>
                 <Button
                     onClick={handleButtonClicks}
                     sx={{ marginLeft: 40, marginTop: 1 }}
@@ -270,14 +338,16 @@ const AdminReports = () => {
                     Return
                 </Button>
             </ButtonGroup>
-
+            <Typography variant='h5' component='span' sx={{ marginLeft: 50, marginTop: 0, width: '50%' }}>
+                {reportInfo?.find((report: ReportInfo) => report?.id === selectedCardExpenses?.[0].reportID)?.name ?? "Select a Report"}
+            </Typography>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '20px', marginLeft: '20px' }}>
                 {createCardReports()}
             </div>
             <Container sx={{
-                margin: 2,
+                margin: 4,
                 height: 375,
-                width: 725,
+                width: 1025,
             }}>
                 {showExpenseGrid && createExpensesGrid()}
             </Container>
