@@ -30,6 +30,7 @@ const Statements: React.FC = () => {
 
     const handleSelectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+        console.log(`handleSelectFile: ${JSON.stringify(file)}`);
         if (!file) return;
 
         const reader = new FileReader();
@@ -49,9 +50,9 @@ const Statements: React.FC = () => {
                             Amount: amount.trim(),
                             Description: description.trim(),
                             Card: cardNumber.trim(),
-                            Category: category.trim(),
+                            Category: category?.trim(),
                             Type: type.trim(),
-                            Memo: memo.trim(),
+                            Memo: memo?.trim(),
                         };
                     });
 
@@ -68,7 +69,7 @@ const Statements: React.FC = () => {
         if (oData) {
             let expenseObj: Expense[] = [];
             console.log(oData.length);
-            console.log(oData[1].Category);
+            console.log(oData[1]?.Category);
             console.log(oData);
 
             for (let i = 0; i < oData.length; i++) {
@@ -77,7 +78,7 @@ const Statements: React.FC = () => {
                     cardNumber: Number(oData[i].Card),
                     transactionDate: new Date(oData[i]["Transaction Date"]).toJSON(),
                     postDate: new Date(oData[i]["Post Date"]).toJSON(),
-                    category: oData[i].Category,
+                    category: oData[i]?.Category,
                     description: oData[i].Description,
                     type: oData[i].Type,
                     memo: oData[i].Memo,
@@ -90,7 +91,6 @@ const Statements: React.FC = () => {
             // Post data
 
             console.log(`Calling api: ${api_url}`);
-
             const postExpenses = async (finalExpense: Expense[]) => {
                 try {
                     var request = JSON.stringify(finalExpense);
@@ -98,10 +98,15 @@ const Statements: React.FC = () => {
                     const response = await axios.post(api_url, request, {
                         headers: userHeaders
                     });
-                    handleClear("Data uploaded successfully!");
+                    console.log(`postExpenses: Response: ${JSON.stringify(response.data)}`);
+                    if (response.data.status === 200) {
+                        handleClear("Data uploaded successfully!");
+                    } else {
+                        handleClear(`Data upload unsuccessful: ${response.data.statusText}`);
+                    }
                 } catch (error) {
-                    console.error("Error fetching data:", error);
-                    handleClear("Sorry, the data failed to upload");
+                    console.error("postExpenses: Error fetching data:", error);
+                    handleClear("Failed to upload data.  Contact Tech Support.");
                 } finally {
                     setLoading(false);
                 }

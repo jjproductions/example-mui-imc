@@ -217,7 +217,7 @@ const AdminReports = () => {
                                     {reportInfo?.filter((reports: ReportInfo) => reports.cardNumber === card).map((report: ReportInfo) => (
                                         <ButtonGraphic
                                             text={report.name}
-                                            onClick={() => handleReportClick(report.id)}
+                                            onClick={() => handleReportClick(report?.id)}
                                             key={report.id}
                                         />
                                     ))}
@@ -243,6 +243,12 @@ const AdminReports = () => {
         console.log(`AdminReports: handleReportClick: ${rptId}`);
         try {
             console.log(`AdminReports: handleReportClick: Calling Api: ${api_url_statements_report}?id=${rptId}`);
+            if (rptId === undefined) {
+                console.error("AdminReports: handleReportClick: Invalid report id");
+                setIsAlertOpen({ open: true, message: "System Error: Please contact Tech Support", severity: "error" });
+                return;
+            }
+
             const response = await axios.get(api_url_statements_report + "?id=" + rptId, {
                 headers: userHeaders
             });
@@ -338,7 +344,7 @@ const AdminReports = () => {
                     Return
                 </Button>
             </ButtonGroup>
-            <Typography variant='h5' component='span' sx={{ marginLeft: 50, marginTop: 0, width: '50%' }}>
+            <Typography variant='h5' component='span' sx={{ marginLeft: 40, marginTop: 0, width: '50%' }}>
                 {reportInfo?.find((report: ReportInfo) => report?.id === selectedCardExpenses?.[0].reportID)?.name ?? "Select a Report"}
             </Typography>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '20px', marginLeft: '20px' }}>

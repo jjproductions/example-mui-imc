@@ -451,13 +451,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                     { ...rpt, memo: response.data.memo, status: reportStatus[response.data.status as unknown as keyof typeof reportStatus] } :
                     rpt
             ));
-
-
-            //     if (rpt.id === rptId) {
-            //         rpt.status = reportStatus[response.data.status as unknown as keyof typeof reportStatus];
-            //     }
-            //     return rpt;
-            // }));
+            localStorage.setItem("status", reportStatus[curReportStatus]);
             return rptId;
         } catch (error) {
             setAlertMsg({ open: true, message: `Error Updating Report.  ${process.env.REACT_APP_SUPPORT_CONTACT_MSG}`, severity: "error" });
