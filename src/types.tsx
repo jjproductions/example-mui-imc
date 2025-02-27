@@ -110,6 +110,7 @@ export interface ReportUpdate {
   itemsToDelete: number[];
   status?: reportStatus;
   statements: StatementUpdate[];
+  sendNotification: boolean;
 }
 
 export interface reportDeleteRequest {

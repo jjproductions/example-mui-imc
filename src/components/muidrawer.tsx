@@ -32,7 +32,8 @@ export const MuiDrawer = () => {
             </>
         )
     }
-
+    const CompanyName = process.env.REACT_APP_COMPANY_NAME;
+    console.log(`MuiDrawer: Company Name: ${CompanyName}`);
     return (
         <>
             <AppBar position='static'>
@@ -54,7 +55,7 @@ export const MuiDrawer = () => {
                             fontWeight: '800'
                         }}
                     >
-                        IMC
+                        {CompanyName}
                     </Typography>
                     <Stack direction={'column'} spacing={0}>
                         <Typography variant='h6' component={'div'}

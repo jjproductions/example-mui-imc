@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
-import { Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box, ButtonGroup } from "@mui/material";
-import { Expense, bankExpense } from "../types";
+import { Button, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box, ButtonGroup, Snackbar, Alert, SnackbarCloseReason } from "@mui/material";
+import { Expense, alertStatus, bankExpense } from "../types";
 import axios from "axios";
 import { styled } from '@mui/material/styles';
 import { AuthContext } from "../hooks/useAuth";
@@ -10,6 +10,7 @@ const Statements: React.FC = () => {
     const [bankStatment, setBankStatement] = useState<bankExpense[] | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [isAlertOpen, setIsAlertOpen] = useState<alertStatus>({ open: false, message: "", severity: "info" });
     const api_url = `${process.env.REACT_APP_DOMAIN}${process.env.REACT_APP_API_VERSION}/expenses`;
     const auth = `Bearer ${localStorage.getItem("token")}`;
     const userHeaders = {
@@ -99,8 +100,8 @@ const Statements: React.FC = () => {
                         headers: userHeaders
                     });
                     console.log(`postExpenses: Response: ${JSON.stringify(response.data)}`);
-                    if (response.data.status === 200) {
-                        handleClear("Data uploaded successfully!");
+                    if (response.data.statusCode === 200) {
+                        handleClear(`${response.data.statusMessage}`);
                     } else {
                         handleClear(`Data upload unsuccessful: ${response.data.statusText}`);
                     }
@@ -119,14 +120,33 @@ const Statements: React.FC = () => {
     const handleClear = (message: string | null) => {
 
         setBankStatement(null);
-        setFileName(message ?? null);
+        setIsAlertOpen({ open: true, message: message ?? "Data Uploaded", severity: "info" });
+        setFileName(null);
     }
+
+    const handleClose = (
+        event?: React.SyntheticEvent | Event,
+        reason?: SnackbarCloseReason,
+    ) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+
+        setIsAlertOpen({ open: false, message: "", severity: "info" });
+    };
 
     return (
         <div style={{ padding: "16px" }}>
-            {/* <Typography variant="h5" gutterBottom>
-                Upload bank statement
-            </Typography> */}
+            <Snackbar autoHideDuration={6000} open={isAlertOpen.open} onClose={handleClose}>
+                <Alert
+                    onClose={handleClose}
+                    severity="success"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {isAlertOpen.message}
+                </Alert>
+            </Snackbar>
             <Button
                 variant="contained"
                 component="label"

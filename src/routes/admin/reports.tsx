@@ -8,9 +8,9 @@ import { api_domain } from '../../utilities';
 import axios from 'axios';
 import { alertStatus, Expense, ReportInfo, ReportRequest, reportStatus } from '../../types';
 import { report } from 'process';
-import { ButtonGraphic } from '../custom/graphicbutton';
+import { ButtonGraphic } from '../../components/custom/graphicbutton';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { ViewImageSelection } from '../report/imageViewer';
+import { ViewImageSelection } from '../../components/report/imageViewer';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -97,6 +97,9 @@ const AdminReports = () => {
                 });
                 if (response.data !== null) {
                     console.log(`handleButtonClicks: ${action} selected returned: ${JSON.stringify(response.data)}`);
+                    // Send notification
+
+
                     setReportInfo((prevReportInfo) => {
                         return prevReportInfo?.filter((report: ReportInfo) =>
                             report.id !== rptInfo?.id

@@ -13,7 +13,7 @@ import Expenses from './routes/expenses';
 import Login from './routes/login';
 import Reports from './routes/reports';
 import Statements from './routes/statements';
-import AdminReports from './components/admin/reports';
+import AdminReports from './routes/admin/reports';
 import { BrowserRouter as Router, Routes, Route, RouterProvider, BrowserRouter, createBrowserRouter } from 'react-router-dom';
 import ErrorPage from './error-page';
 import { ProtectedRoute } from './components/protectedRoute';

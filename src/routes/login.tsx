@@ -12,7 +12,7 @@ export const Login = () => {
     const { Login, userInfo } = useContext(AuthContext);
     const [email, setEmail] = useState<string>('');
     const [pw, setPw] = useState<string>('');
-    const emailValidationList = ['@', '.org'];
+    const emailValidationList = ['@', '.org', '.com'];
     const arrayTest = [/[0-9]/, /[a-z]/, /[A-Z]/, /[^0-9a-zA-Z]/];
     const [validationMessage, setValidationMessage] = useState<string>('');
     const navigate = useNavigate();
@@ -39,8 +39,10 @@ export const Login = () => {
 
         setValidationMessage('');
         //npm i check-password-strength
-        if (email !== '' && emailValidationList.every(value => email.includes(value.toLowerCase())))
+        console.log(`Email: ${email}`);
+        if (email !== '' && email.includes('@') && (email.endsWith('.org') || email.endsWith('.com'))) {
             isEmailValid = true;
+        }
 
         if (pw.length >= 8) {
             arrayTest.forEach((item) => {
@@ -59,7 +61,7 @@ export const Login = () => {
 
         if (isEmailValid && isPwValid) {
             let credentials: LoginType = {
-                email: email,
+                email: email.toLowerCase(),
                 password: pw,
                 remember_me: false
             }

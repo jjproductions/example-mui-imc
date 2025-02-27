@@ -466,6 +466,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
         // console.log(`updateReport: CURRENT REPORT EXPENSES: ${JSON.stringify(currReportExpenses)}`);
         console.log(`updateReport: REPORT HEADER DATA: ${JSON.stringify(reportHeaderData)}`);
         console.log(`updateReport: curReportStatus: ${JSON.stringify((curReportStatus === reportStatus.NEW || curReportStatus === reportStatus.PENDING) ? undefined : curReportStatus)}`);
+        let isNewReport: boolean = false;
         let reportFinal: ReportUpdate = {
             cardNumber: reportHeaderData.cardNumber as number,
             reportName: selectedValue === "-1" ? (newReportName.trim() === "" ? initialReportName : newReportName) : reportHeaderData.name as string,
@@ -473,7 +474,8 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
             reportMemo: '',
             itemsToDelete: currReportItemsToDelete,
             status: (curReportStatus === reportStatus.NEW || curReportStatus === reportStatus.PENDING) ? undefined : curReportStatus,    //reportHeaderData.status === reportStatus.SUBMITTED ? reportStatus.SUBMITTED : undefined,
-            statements: []
+            statements: [],
+            sendNotification: (selectedValue === "-1") || (curReportStatus === reportStatus.SUBMITTED) ? true : false
         }
 
         // const imageURI: string = await saveReceiptImages();  //Save receipt images first
@@ -511,8 +513,10 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
         let reportId: number = 0;
         if (reportFinal.reportId) {   // Updates existing report
             reportId = await updateExistingReport(reportFinal.reportId, reportFinal.reportMemo);
-        } else reportId = await createNewReport();   // Creates a new report only if it's a new report
-
+        } else {
+            reportId = await createNewReport();   // Creates a new report only if it's a new report
+            isNewReport = true;
+        }
         if (typeof reportId === 'number' && reportId > 0) {
             reportFinal.reportId = reportId;
             await processExpenses(reportId);  // Only if existing or createNewReport succeeded
@@ -533,7 +537,7 @@ const ReportHeader: React.FC<ReportHeaderInfo> = ({ amount }) => {
                 return;
             }
 
-            console.log(`updateReport: Calling Api: ${api_url_statements_update} for Report id: ${reportFinal.reportId}`);
+            console.log(`updateReport: Calling Api: ${api_url_statements_update} for Report id: ${reportFinal.reportId}.  Send notifications: ${reportFinal.sendNotification}`);
             const response = await axios.post(api_url_statements_update, reportFinal, {
                 headers: userHeaders
             });
